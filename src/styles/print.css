@@ -1,0 +1,558 @@
+/**
+ * Print-specific styles for patient document template
+ * 
+ * Design based on Figma: Two-page A4 layout with color-coded sections
+ * Two-column grid layout matching the exact Figma design
+ * Optimized for accessibility and clinical readability
+ * Visual style: White card backgrounds with colored borders
+ */
+
+/* Print color variables - updated for card-based design */
+:root {
+  /* Border colors for section variants */
+  --print-teal-border: #43B39D;
+  --print-pink-border: #DD4C6E;
+  --print-red-border: #ce556e;
+  --print-navy-border: #252e51;
+  
+  /* Footer teal background */
+  --print-footer-bg: #C0E1D9;
+  
+  /* Text colors */
+  --print-text: 215 25% 27%;
+  --print-text-light: 215 20% 45%;
+  --print-bg: 0 0% 100%;
+  --print-border: 215 20% 88%;
+}
+
+/* Flexible document container - grows with content */
+.print-document {
+  width: 210mm;
+  padding: 10mm 12mm;
+  margin: 0 auto;
+  background: hsl(var(--print-bg));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Screen preview styling */
+@media screen {
+  .print-document {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+  }
+  
+  .print-container {
+    padding: 20px;
+    background: hsl(215 20% 95%);
+    min-height: calc(100vh - 80px);
+  }
+}
+
+/* Mobile responsive scaling for A4 preview */
+@media screen and (max-width: 767px) {
+  .print-container {
+    padding: 16px;
+    overflow-x: auto;
+  }
+  
+  .print-document {
+    /* Scale to fit screen width while maintaining aspect ratio */
+    transform-origin: top left;
+    transform: scale(calc((100vw - 32px) / 210mm));
+    width: 210mm; /* Keep A4 width */
+  }
+}
+
+/* Tablet scaling */
+@media screen and (min-width: 768px) and (max-width: 849px) {
+  .print-container {
+    padding: 16px;
+  }
+  
+  .print-document {
+    transform-origin: top center;
+    transform: scale(0.9);
+  }
+}
+
+/* Print media rules - let browser handle page breaks */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+  }
+  
+  /* Page wrapper must be white in print */
+  .print-page {
+    background: white !important;
+    min-height: auto !important;
+  }
+  
+  .print-container {
+    padding: 0;
+    margin: 0;
+    background: white !important;
+    min-height: auto !important;
+    /* Reset any transforms from responsive styles */
+    transform: none !important;
+    transform-origin: initial !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-document {
+    width: 100%;
+    padding: 0;
+    box-shadow: none;
+    /* CRITICAL: Reset any transforms from responsive styles */
+    transform: none !important;
+    transform-origin: initial !important;
+    background: white !important;
+  }
+  
+  .print-content-grid {
+    background: white !important;
+  }
+  
+  /* Prevent sections from breaking across pages */
+  .print-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  
+  /* Keep footer together */
+  .print-footer {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-top: 16px;
+  }
+  
+  /* Force color printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* ============================================
+   IS-PRINTING OVERRIDES
+   Fallback for browsers that don't honor @media print correctly.
+   Applied via JS before window.print() is called.
+   ============================================ */
+
+html.is-printing,
+html.is-printing body,
+html.is-printing #root {
+  background: white !important;
+}
+
+html.is-printing .print-page {
+  background: white !important;
+  min-height: auto !important;
+}
+
+html.is-printing .print-container {
+  background: white !important;
+  min-height: auto !important;
+  transform: none !important;
+  transform-origin: initial !important;
+}
+
+html.is-printing .print-document {
+  background: white !important;
+  transform: none !important;
+  transform-origin: initial !important;
+  box-shadow: none !important;
+}
+
+html.is-printing .print-content-grid {
+  background: white !important;
+}
+
+/* ============================================
+   SIMPLIFIED HORIZONTAL FLOW GRID
+   Cards flow left-to-right, wrap when needed
+   ============================================ */
+
+.print-content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  flex: 1;
+  align-items: start;           /* Cards align to top, don't stretch */
+  grid-auto-rows: min-content;  /* Rows only as tall as content */
+}
+
+/* Full-width section spans both columns */
+.print-section--full-width {
+  grid-column: 1 / -1;
+}
+
+/* ============================================
+   TYPOGRAPHY - Updated sizes
+   ============================================ */
+
+.print-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: hsl(var(--print-text));
+  line-height: 1.15;
+}
+
+.print-subtitle {
+  font-size: 12px;              /* Match body font size */
+  color: hsl(var(--print-text-light));
+  line-height: 1.4;             /* Match body line-height */
+  margin-top: 8px;              /* More space above */
+  font-weight: 400;             /* Normal weight like body */
+}
+
+.print-section-header {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.print-body {
+  font-size: 12px;
+  line-height: 1.4;
+  color: hsl(var(--print-text));
+}
+
+.print-body-large {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ============================================
+   SECTION STYLING - White cards with colored borders
+   ============================================ */
+
+.print-section {
+  padding: 12px;
+  border-radius: 12px;
+  background: white;
+  border: 1px solid;
+  height: fit-content;
+}
+
+/* Teal variant */
+.print-section--teal {
+  border-color: var(--print-teal-border);
+}
+
+.print-section--teal .print-section-header {
+  color: var(--print-teal-border);
+}
+
+/* Pink variant */
+.print-section--pink {
+  border-color: var(--print-pink-border);
+}
+
+.print-section--pink .print-section-header {
+  color: var(--print-pink-border);
+}
+
+/* Red/Warning variant - NOW white bg with red border */
+.print-section--red {
+  border-color: var(--print-red-border);
+  background: white;
+}
+
+.print-section--red .print-section-header {
+  color: var(--print-red-border);
+}
+
+.print-section--red .print-body {
+  color: hsl(var(--print-text));
+}
+
+/* Neutral variant */
+.print-section--neutral {
+  border-color: hsl(var(--print-border));
+  background: white;
+}
+
+/* Contacts variant - NOW white bg with navy border */
+.print-section--contacts {
+  border-color: var(--print-navy-border);
+  background: white;
+}
+
+.print-section--contacts .print-section-header {
+  color: var(--print-navy-border);
+}
+
+.print-section--contacts .print-body {
+  color: hsl(var(--print-text));
+}
+
+/* Full height section */
+.print-section--full-height {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   LIFESTYLE SUBSECTIONS
+   ============================================ */
+
+.print-lifestyle-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.print-lifestyle-item {
+  padding: 6px 10px;
+  background: hsl(0 0% 98%);
+  border-radius: 6px;
+  border: 1px solid hsl(var(--print-border));
+}
+
+.print-lifestyle-item h4 {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--print-teal-border);
+  margin-bottom: 3px;
+}
+
+/* ============================================
+   MEDICATION LIST STYLING
+   ============================================ */
+
+.print-medication-item {
+  padding: 6px 0;
+  border-bottom: 1px solid hsl(var(--print-border));
+}
+
+.print-medication-item:last-child {
+  border-bottom: none;
+}
+
+.print-medication-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: hsl(var(--print-text));
+}
+
+.print-medication-consequence {
+  font-size: 10px;
+  color: var(--print-pink-border);
+  font-style: italic;
+  margin-top: 3px;
+}
+
+/* ============================================
+   CONTACT STYLING
+   ============================================ */
+
+.print-contact-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid hsl(var(--print-border));
+}
+
+.print-contact-item:last-child {
+  border-bottom: none;
+}
+
+.print-contact-emergency {
+  background: hsl(var(--print-border));
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+
+/* ============================================
+   WARNING LIST STYLING
+   ============================================ */
+
+.print-warning-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.print-warning-list li {
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 4px;
+  color: hsl(var(--print-text));
+}
+
+.print-warning-list li::before {
+  content: "⚠";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--print-red-border);
+}
+
+/* ============================================
+   HEADER STYLING
+   ============================================ */
+
+.print-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid hsl(var(--print-border));
+  position: relative;
+}
+
+.print-header-logo {
+  height: 28pt;
+  width: auto;
+}
+
+.print-header-date {
+  font-size: 10px;
+  color: hsl(var(--print-text-light));
+  text-align: right;
+}
+
+/* REMOVED: Page 2 mini header no longer needed with single-page flow */
+
+/* ============================================
+   FOOTER STYLING - Teal background with signature box
+   ============================================ */
+
+.print-footer {
+  margin-top: 16px;
+  padding: 16px 24px;
+  border-top: 1px solid hsl(var(--print-border));
+  background: var(--print-footer-bg);
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* QR code on LEFT side */
+.print-qr-container {
+  text-align: center;
+  order: -1;
+}
+
+.print-qr-label {
+  font-size: 10px;
+  color: hsl(var(--print-text));
+  margin-top: 4px;
+}
+
+/* Signature box on RIGHT side - white card */
+.print-signature {
+  background: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: right;
+}
+
+.print-signature-label {
+  font-size: 10px;
+  color: hsl(var(--print-text-light));
+  margin-bottom: 4px;
+}
+
+.print-signature-line {
+  font-size: 14px;
+  font-weight: 600;
+  color: hsl(var(--print-text));
+}
+
+.print-signature-date {
+  font-size: 10px;
+  color: hsl(var(--print-text-light));
+  margin-top: 4px;
+}
+
+/* ============================================
+   DECORATIVE ELEMENTS
+   ============================================ */
+
+.print-decoration {
+  position: absolute;
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+.print-decoration--top-right {
+  top: 6mm;
+  right: 50mm;
+  font-size: 40pt;
+}
+
+.print-decoration--top-left {
+  top: 6mm;
+  left: 10mm;
+  font-size: 28pt;
+}
+
+/* ============================================
+   MARKDOWN CONTENT STYLING
+   ============================================ */
+
+.print-body ul,
+.print-body ol {
+  padding-left: 16px;
+  margin: 4px 0;
+}
+
+.print-body li {
+  margin-bottom: 3px;
+}
+
+.print-body strong {
+  font-weight: 600;
+}
+
+.print-body p {
+  margin-bottom: 6px;
+}
+
+.print-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* Compact body for dense sections */
+.print-body--compact ul,
+.print-body--compact ol {
+  padding-left: 14px;
+  margin: 2px 0;
+}
+
+.print-body--compact li {
+  margin-bottom: 2px;
+  font-size: 11px;
+}
+
+.print-body--compact p {
+  margin-bottom: 3px;
+  font-size: 11px;
+}
+
+/* Section icon sizing */
+.print-section-header .icon,
+.print-section-header span:first-child {
+  font-size: 14px;
+}
