@@ -222,7 +222,7 @@ The AI generates 7 personalised sections:
 - **Supabase CLI**: https://supabase.com/docs/reference/cli/start (CLI for   local project settings)
 - **IBM WatsonX**: https://dataplatform.cloud.ibm.com/ (for API key management)
 
-## � Troubleshooting
+## Troubleshooting
 
 ### Supabase Won't Start
 ```bash
@@ -268,6 +268,6 @@ npx supabase db push
 - **Database**: Follow existing schema patterns and use migrations
 - **Components**: Follow React best practices with functional components
 
-## �📄 License
+## 📄 License
 
 This project is a proof-of-concept for healthcare communication improvement.
