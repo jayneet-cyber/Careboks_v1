@@ -6,6 +6,11 @@ Careboks helps clinicians communicate complex medical information in a clear, st
 
 **Supported Languages:** Estonian, Russian, English
 
+## To do containerised setup (frontend+backend+postgres)
+- Please follow: https://github.com/jayneet-cyber/Careboks_v1/tree/containerised-careboks 
+
+## Following setup is for frontend+supabase
+
 ## 🛠️ Tech Stack
 
 | Category | Technology |
