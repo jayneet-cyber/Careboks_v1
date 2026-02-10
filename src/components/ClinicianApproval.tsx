@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useCasePersistence } from "@/hooks/useCasePersistence";
-import { supabase } from "@/integrations/supabase/client";
+import { requestBackendAuthed } from "@/integrations/auth/backendApi";
 import { Printer, ChevronLeft, FileCheck, Heart, Activity, Calendar, Sparkles, Pill, Phone, AlertTriangle, Loader2, Share2 } from "lucide-react";
 import { usePublishedDocument } from "@/hooks/usePublishedDocument";
 import { SectionBox } from "@/components/SectionBox";
@@ -134,12 +134,11 @@ export const ClinicianApproval = ({
     setGenerationError('');
 
     try {
-      const { data: documentData, error: documentError } = await supabase.functions.invoke(
-        'generate-patient-document-v2',
-        { body: { technicalNote, patientData } }
-      );
+      const documentData = await requestBackendAuthed<any>("/ai/generate-patient-document-v2", {
+        method: "POST",
+        body: { technicalNote, patientData }
+      });
 
-      if (documentError) throw documentError;
       if (!documentData?.document) throw new Error("No document data received");
 
       // Parse structured JSON into sections
@@ -205,18 +204,17 @@ export const ClinicianApproval = ({
     setRegeneratingIndex(index);
     
     try {
-      const { data, error } = await supabase.functions.invoke('regenerate-section', {
+      const data = await requestBackendAuthed<any>("/ai/regenerate-section", {
+        method: "POST",
         body: {
           sectionIndex: index,
           sectionTitle: SECTION_CONFIGS[index].title,
           currentContent: sections[index]?.content || "",
-          analysis: analysis,
-          patientData: patientData,
-          technicalNote: technicalNote,
+          analysis,
+          patientData,
+          technicalNote
         }
       });
-      
-      if (error) throw error;
       
       // Update section with regenerated content
       const updated = [...sections];

@@ -4,9 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { requestBackendAuthed } from "@/integrations/auth/backendApi";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Languages } from "lucide-react";
+
+type AccountProfile = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  language: string;
+};
 
 const ProfileSection = () => {
   const [loading, setLoading] = useState(true);
@@ -27,47 +35,14 @@ const ProfileSection = () => {
 
   const loadProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      // If no profile exists, create one
-      if (!data) {
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            email: user.email || "",
-            first_name: "",
-            last_name: "",
-            role: ""
-          });
-
-        if (insertError) throw insertError;
-
-        setProfile({
-          first_name: "",
-          last_name: "",
-          email: user.email || "",
-          role: "",
-          language: "est"
-        });
-      } else {
-        setProfile({
-          first_name: data.first_name || "",
-          last_name: data.last_name || "",
-          email: data.email || user.email || "",
-          role: data.role || "",
-          language: data.language || "est"
-        });
-      }
+      const data = await requestBackendAuthed<AccountProfile>("/account/profile");
+      setProfile({
+        first_name: data.first_name ?? "",
+        last_name: data.last_name ?? "",
+        email: data.email ?? "",
+        role: data.role ?? "",
+        language: data.language || "est"
+      });
     } catch (error: any) {
       console.error('Error loading profile:', error);
       toast({
@@ -83,20 +58,23 @@ const ProfileSection = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
+      const data = await requestBackendAuthed<AccountProfile>("/account/profile", {
+        method: "PATCH",
+        body: {
           first_name: profile.first_name,
           last_name: profile.last_name,
           role: profile.role,
           language: profile.language
-        })
-        .eq('id', user.id);
+        }
+      });
 
-      if (error) throw error;
+      setProfile({
+        first_name: data.first_name ?? "",
+        last_name: data.last_name ?? "",
+        email: data.email ?? "",
+        role: data.role ?? "",
+        language: data.language || "est"
+      });
 
       toast({
         title: "Success",

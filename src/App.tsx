@@ -4,8 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
+import {
+  getStoredSession,
+  logoutBackendSession,
+  onAuthChanged,
+  restoreBackendSession
+} from "@/integrations/auth/customAuth";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
@@ -17,24 +21,29 @@ import PatientDocument from "./pages/PatientDocument";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [session, setSession] = useState<Session | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const hydrateCustomSession = async () => {
+      const activeSession = await restoreBackendSession();
+      setIsAuthenticated(Boolean(activeSession));
       setLoading(false);
+    };
+
+    void hydrateCustomSession();
+
+    const unsubscribe = onAuthChanged(() => {
+      const activeSession = getStoredSession();
+      setIsAuthenticated(Boolean(activeSession?.accessToken));
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
+    return unsubscribe;
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await logoutBackendSession();
+    setIsAuthenticated(false);
   };
 
   if (loading) {
@@ -53,10 +62,10 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={session ? <Navigate to="/app" /> : <Auth />} />
-            <Route path="/app" element={session ? <Index onLogout={handleLogout} /> : <Navigate to="/auth" />} />
-            <Route path="/app/print-preview/:caseId" element={session ? <PrintPreview /> : <Navigate to="/auth" />} />
-            <Route path="/account" element={session ? <Account onLogout={handleLogout} /> : <Navigate to="/auth" />} />
+            <Route path="/auth" element={isAuthenticated ? <Navigate to="/app" /> : <Auth />} />
+            <Route path="/app" element={isAuthenticated ? <Index onLogout={handleLogout} /> : <Navigate to="/auth" />} />
+            <Route path="/app/print-preview/:caseId" element={isAuthenticated ? <PrintPreview /> : <Navigate to="/auth" />} />
+            <Route path="/account" element={isAuthenticated ? <Account onLogout={handleLogout} /> : <Navigate to="/auth" />} />
             <Route path="/document/:accessToken" element={<PatientDocument />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

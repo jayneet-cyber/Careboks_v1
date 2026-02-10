@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CLINICIAN
+  ADMIN
+}
+
+enum CaseStatus {
+  DRAFT            @map("draft")
+  PROCESSING       @map("processing")
+  PENDING_APPROVAL @map("pending_approval")
+  APPROVED         @map("approved")
+  COMPLETED        @map("completed")
+
+  @@map("case_status")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         UserRole  @default(CLINICIAN)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  profile      Profile?
+  sessions     Session[]
+  patientCases PatientCase[]
+  approvals    Approval[]
+  caseFeedback CaseFeedback[]
+  publishedDocuments PublishedDocument[]
+  clinicianContacts ClinicianContact[]
+  userDocuments UserDocument[]
+
+  @@map("users")
+}
+
+model Profile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @map("user_id") @db.Uuid
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  language  String   @default("en")
+  role      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_sessions_user_id")
+  @@index([expiresAt], map: "idx_sessions_expires_at")
+  @@map("sessions")
+}
+
+model PatientCase {
+  id               String           @id @default(uuid()) @db.Uuid
+  createdBy        String           @map("created_by") @db.Uuid
+  technicalNote    String?          @map("technical_note")
+  uploadedFileNames String[]        @default([]) @map("uploaded_file_names")
+  status           CaseStatus       @default(DRAFT)
+  completedAt      DateTime?        @map("completed_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  creator          User             @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  patientProfiles  PatientProfile[]
+  aiAnalyses       AiAnalysis[]
+  approvals        Approval[]
+  caseFeedback     CaseFeedback[]
+  publishedDocuments PublishedDocument[]
+  patientFeedback  PatientFeedback[]
+
+  @@index([createdBy], map: "idx_patient_cases_created_by")
+  @@map("patient_cases")
+}
+
+model PatientProfile {
+  id                    String      @id @default(uuid()) @db.Uuid
+  caseId                String      @unique @map("case_id") @db.Uuid
+  ageBracket            String?     @map("age_bracket")
+  sex                   String?
+  language              String?
+  healthLiteracy        String?     @map("health_literacy")
+  journeyType           String?     @map("journey_type")
+  riskAppetite          String?     @map("risk_appetite")
+  hasAccessibilityNeeds Boolean?    @map("has_accessibility_needs")
+  includeRelatives      Boolean?    @map("include_relatives")
+  comorbidities         String[]     @default([])
+  createdAt             DateTime    @default(now()) @map("created_at")
+  patientCase           PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("patient_profiles")
+}
+
+model AiAnalysis {
+  id          String      @id @default(uuid()) @db.Uuid
+  caseId      String      @map("case_id") @db.Uuid
+  analysisData Json?      @map("analysis_data")
+  aiDraftText String?     @map("ai_draft_text")
+  modelUsed   String?     @map("model_used")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  patientCase PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId], map: "idx_ai_analyses_case_id")
+  @@map("ai_analyses")
+}
+
+model Approval {
+  id           String      @id @default(uuid()) @db.Uuid
+  caseId       String      @map("case_id") @db.Uuid
+  approvedBy   String      @map("approved_by") @db.Uuid
+  approvedText String      @map("approved_text")
+  notes        String?
+  approvedAt   DateTime    @default(now()) @map("approved_at")
+  patientCase  PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  approver     User        @relation(fields: [approvedBy], references: [id], onDelete: Cascade)
+
+  @@index([caseId], map: "idx_approvals_case_id")
+  @@index([approvedBy], map: "idx_approvals_approved_by")
+  @@map("approvals")
+}
+
+model CaseFeedback {
+  id                 String      @id @default(uuid()) @db.Uuid
+  caseId             String      @map("case_id") @db.Uuid
+  submittedBy        String      @map("submitted_by") @db.Uuid
+  selectedOptions    String[]    @default([]) @map("selected_options")
+  additionalComments String?     @map("additional_comments")
+  submittedAt        DateTime    @default(now()) @map("submitted_at")
+  patientCase        PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  submitter          User        @relation(fields: [submittedBy], references: [id], onDelete: Cascade)
+
+  @@index([caseId], map: "idx_case_feedback_case_id")
+  @@index([submittedBy], map: "idx_case_feedback_submitted_by")
+  @@map("case_feedback")
+}
+
+model PublishedDocument {
+  id              String      @id @default(uuid()) @db.Uuid
+  caseId          String      @map("case_id") @db.Uuid
+  createdBy       String      @map("created_by") @db.Uuid
+  accessToken     String      @unique @map("access_token")
+  sectionsData    Json        @map("sections_data")
+  patientLanguage String      @default("est") @map("patient_language")
+  clinicianName   String      @map("clinician_name")
+  hospitalName    String?     @map("hospital_name")
+  publishedAt     DateTime    @default(now()) @map("published_at")
+  expiresAt       DateTime?   @map("expires_at")
+  viewCount       Int         @default(0) @map("view_count")
+  isActive        Boolean     @default(true) @map("is_active")
+  patientCase     PatientCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  creator         User        @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  patientFeedback PatientFeedback[]
+
+  @@index([accessToken], map: "idx_published_documents_access_token")
+  @@index([caseId], map: "idx_published_documents_case_id")
+  @@map("published_documents")
+}
+
+model PatientFeedback {
+  id                 String            @id @default(uuid()) @db.Uuid
+  caseId             String            @map("case_id") @db.Uuid
+  publishedDocumentId String           @map("published_document_id") @db.Uuid
+  feedbackSource     String            @default("qr_view") @map("feedback_source")
+  selectedOptions    String[]          @default([]) @map("selected_options")
+  additionalComments String?           @map("additional_comments")
+  submittedAt        DateTime          @default(now()) @map("submitted_at")
+  patientCase        PatientCase       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  publishedDocument  PublishedDocument @relation(fields: [publishedDocumentId], references: [id], onDelete: Cascade)
+
+  @@index([caseId], map: "idx_patient_feedback_case_id")
+  @@index([publishedDocumentId], map: "idx_patient_feedback_published_document_id")
+  @@map("patient_feedback")
+}
+
+model ClinicianContact {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  specialty String?
+  phone     String?
+  email     String?
+  notes     String?
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_clinician_contacts_user_id")
+  @@index([isPrimary], map: "idx_clinician_contacts_is_primary")
+  @@map("clinician_contacts")
+}
+
+model UserDocument {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  fileName   String   @map("file_name")
+  filePath   String   @map("file_path")
+  fileType   String   @map("file_type")
+  fileSize   Int?     @map("file_size")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_user_documents_user_id")
+  @@map("user_documents")
+}

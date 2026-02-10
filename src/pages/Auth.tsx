@@ -16,7 +16,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  restoreBackendSession,
+  signInWithBackend,
+  signUpWithBackend
+} from "@/integrations/auth/customAuth";
 import careboksLogo from "@/assets/careboks-logo.png";
 import { X } from "lucide-react";
 
@@ -42,21 +46,11 @@ const Auth = () => {
    * Check for existing session and set up auth state listener
    */
   useEffect(() => {
-    // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    restoreBackendSession().then((session) => {
       if (session) {
         navigate("/app");
       }
     });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/app");
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, [navigate]);
 
   /**
@@ -68,20 +62,16 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      await signUpWithBackend({
         email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/app`
-        }
+        password
       });
-
-      if (error) throw error;
 
       toast({
         title: "Account created",
-        description: "You can now sign in with your credentials.",
+        description: "Signed in with your new account.",
       });
+      navigate("/app");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -102,17 +92,16 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      await signInWithBackend({
         email,
-        password,
+        password
       });
-
-      if (error) throw error;
 
       toast({
         title: "Welcome back",
         description: "Successfully signed in to Carebox",
       });
+      navigate("/app");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -207,7 +196,7 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={loading}
-                    minLength={6}
+                    minLength={8}
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>

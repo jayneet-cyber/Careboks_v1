@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, Loader2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { requestBackendAuthed } from "@/integrations/auth/backendApi";
 import { ParsedSection } from "@/utils/draftParser";
 
 interface FeedbackProps {
@@ -77,17 +77,13 @@ export const Feedback = ({
     // Form has content: submit then restart
     setIsSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { error } = await supabase.from('case_feedback').insert({
-        case_id: caseId,
-        submitted_by: user.id,
-        selected_options: selectedOptions,
-        additional_comments: additionalComments.trim() || null
+      await requestBackendAuthed(`/cases/${caseId}/feedback`, {
+        method: "POST",
+        body: {
+          selectedOptions,
+          additionalComments: additionalComments.trim() || null
+        }
       });
-
-      if (error) throw error;
 
       toast({
         title: "Feedback submitted",

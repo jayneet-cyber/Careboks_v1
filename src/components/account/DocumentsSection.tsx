@@ -5,7 +5,7 @@
  * - PDF and TXT file uploads
  * - File listing with metadata (size, upload date)
  * - Download and delete functionality
- * - Storage integration with Supabase
+ * - Backend local file storage integration
  * 
  * @module components/account/DocumentsSection
  */
@@ -13,7 +13,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { requestBackendAuthed } from "@/integrations/auth/backendApi";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Loader2, Trash2, Download } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -33,11 +33,18 @@ interface Document {
   uploaded_at: string;
 }
 
+type DocumentDownload = {
+  id: string;
+  file_name: string;
+  file_type: string;
+  file_data_base64: string;
+};
+
 /**
  * Documents management component
  * 
  * Provides interface for uploading, viewing, and managing
- * user documents stored in Supabase storage.
+ * user documents stored via backend APIs.
  * 
  * @example
  * ```tsx
@@ -54,21 +61,36 @@ const DocumentsSection = () => {
     loadDocuments();
   }, []);
 
+  const convertFileToBase64DataUrl = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+          return;
+        }
+        reject(new Error("Could not read file"));
+      };
+      reader.onerror = () => reject(new Error("Could not read file"));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const decodeBase64ToBlob = (base64: string, mimeType: string) => {
+    const binary = window.atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return new Blob([bytes], { type: mimeType || "application/octet-stream" });
+  };
+
   /**
    * Fetches documents from database for current user
    */
   const loadDocuments = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('user_documents')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('uploaded_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await requestBackendAuthed<Document[]>("/account/documents");
       setDocuments(data || []);
     } catch (error: any) {
       console.error('Error loading documents:', error);
@@ -103,28 +125,16 @@ const DocumentsSection = () => {
 
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const filePath = `${user.id}/${Date.now()}_${file.name}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('user-documents')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { error: dbError } = await supabase
-        .from('user_documents')
-        .insert({
-          user_id: user.id,
+      const fileData = await convertFileToBase64DataUrl(file);
+      await requestBackendAuthed<Document>("/account/documents", {
+        method: "POST",
+        body: {
           file_name: file.name,
-          file_path: filePath,
-          file_type: file.type,
+          file_type: file.type || "application/octet-stream",
+          file_data: fileData,
           file_size: file.size
-        });
-
-      if (dbError) throw dbError;
+        }
+      });
 
       toast({
         title: "Success",
@@ -151,18 +161,9 @@ const DocumentsSection = () => {
    */
   const handleDelete = async (doc: Document) => {
     try {
-      const { error: storageError } = await supabase.storage
-        .from('user-documents')
-        .remove([doc.file_path]);
-
-      if (storageError) throw storageError;
-
-      const { error: dbError } = await supabase
-        .from('user_documents')
-        .delete()
-        .eq('id', doc.id);
-
-      if (dbError) throw dbError;
+      await requestBackendAuthed<{ message: string }>(`/account/documents/${doc.id}`, {
+        method: "DELETE"
+      });
 
       toast({
         title: "Success",
@@ -186,16 +187,14 @@ const DocumentsSection = () => {
    */
   const handleDownload = async (doc: Document) => {
     try {
-      const { data, error } = await supabase.storage
-        .from('user-documents')
-        .download(doc.file_path);
+      const data = await requestBackendAuthed<DocumentDownload>(`/account/documents/${doc.id}/download`);
+      const fileBlob = decodeBase64ToBlob(data.file_data_base64, data.file_type);
+      const downloadName = data.file_name;
 
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
+      const url = URL.createObjectURL(fileBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = doc.file_name;
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

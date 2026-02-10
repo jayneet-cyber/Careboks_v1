@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { requestBackendAuthed } from "@/integrations/auth/backendApi";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Loader2, Phone, Mail, Star } from "lucide-react";
 
@@ -74,17 +74,7 @@ const ContactsSection = () => {
    */
   const loadContacts = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('clinician_contacts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('is_primary', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await requestBackendAuthed<Contact[]>("/account/contacts");
       setContacts(data || []);
     } catch (error: any) {
       console.error('Error loading contacts:', error);
@@ -150,37 +140,25 @@ const ContactsSection = () => {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const payload = {
+        name: formData.name,
+        specialty: formData.specialty || null,
+        phone: formData.phone || null,
+        email: formData.email || null,
+        notes: formData.notes || null,
+        is_primary: formData.is_primary
+      };
 
       if (editingContact) {
-        const { error } = await supabase
-          .from('clinician_contacts')
-          .update({
-            name: formData.name,
-            specialty: formData.specialty || null,
-            phone: formData.phone || null,
-            email: formData.email || null,
-            notes: formData.notes || null,
-            is_primary: formData.is_primary
-          })
-          .eq('id', editingContact.id);
-
-        if (error) throw error;
+        await requestBackendAuthed<Contact>(`/account/contacts/${editingContact.id}`, {
+          method: "PATCH",
+          body: payload
+        });
       } else {
-        const { error } = await supabase
-          .from('clinician_contacts')
-          .insert({
-            user_id: user.id,
-            name: formData.name,
-            specialty: formData.specialty || null,
-            phone: formData.phone || null,
-            email: formData.email || null,
-            notes: formData.notes || null,
-            is_primary: formData.is_primary
-          });
-
-        if (error) throw error;
+        await requestBackendAuthed<Contact>("/account/contacts", {
+          method: "POST",
+          body: payload
+        });
       }
 
       toast({
@@ -206,12 +184,9 @@ const ContactsSection = () => {
    */
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('clinician_contacts')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await requestBackendAuthed<{ message: string }>(`/account/contacts/${id}`, {
+        method: "DELETE"
+      });
 
       toast({
         title: "Success",

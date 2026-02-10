@@ -1,0 +1,18 @@
+-- AlterTable
+ALTER TABLE "clinician_contacts" ALTER COLUMN "id" DROP DEFAULT,
+ALTER COLUMN "created_at" SET DATA TYPE TIMESTAMP(3),
+ALTER COLUMN "updated_at" DROP DEFAULT,
+ALTER COLUMN "updated_at" SET DATA TYPE TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE "patient_feedback" ALTER COLUMN "id" DROP DEFAULT,
+ALTER COLUMN "submitted_at" SET DATA TYPE TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE "published_documents" ALTER COLUMN "id" DROP DEFAULT,
+ALTER COLUMN "published_at" SET DATA TYPE TIMESTAMP(3),
+ALTER COLUMN "expires_at" SET DATA TYPE TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE "user_documents" ALTER COLUMN "id" DROP DEFAULT,
+ALTER COLUMN "uploaded_at" SET DATA TYPE TIMESTAMP(3);

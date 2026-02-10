@@ -15,11 +15,11 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FileText, Upload, File, X, Loader2, CheckCircle2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { pdfToImageDataUrls } from "@/utils/pdfToImages";
 import { extractTextDirectly } from "@/utils/pdfTextExtraction";
 import { useCasePersistence } from "@/hooks/useCasePersistence";
+import { requestBackendAuthed } from "@/integrations/auth/backendApi";
 
 /** Maximum number of documents that can be uploaded at once */
 const MAX_UPLOAD_FILES = 10;
@@ -29,6 +29,13 @@ const MIN_DIRECT_EXTRACTION_LENGTH = 100;
 
 /** Maximum pages to process per document */
 const MAX_PAGES_PER_DOCUMENT = 5;
+
+const extractTextFromDocument = async (fileData: string, fileType: string) => {
+  return requestBackendAuthed<{ extractedText: string }>("/ai/extract-text-from-document", {
+    method: "POST",
+    body: { fileData, fileType }
+  });
+};
 
 /**
  * Props for the TechnicalNoteInput component
@@ -211,22 +218,18 @@ const TechnicalNoteInput = ({
       
       for (const imgUrl of images) {
         pageIndex++;
-        const { data, error } = await supabase.functions.invoke('extract-text-from-document', {
-          body: { fileData: imgUrl, fileType: 'image/png' }
-        });
-        
-        if (error) {
+        try {
+          const data = await extractTextFromDocument(imgUrl, "image/png");
+          if (data?.extractedText) {
+            appendText(`\n\n--- Extracted from ${file.name} (page ${pageIndex}) ---\n${data.extractedText}`);
+            fileExtracted = true;
+          }
+        } catch {
           toast({
             title: "Extraction failed",
             description: `Could not extract text from ${file.name} (page ${pageIndex}).`,
             variant: "destructive"
           });
-          continue;
-        }
-        
-        if (data?.extractedText) {
-          appendText(`\n\n--- Extracted from ${file.name} (page ${pageIndex}) ---\n${data.extractedText}`);
-          fileExtracted = true;
         }
       }
       
@@ -258,22 +261,18 @@ const TechnicalNoteInput = ({
       reader.readAsDataURL(file);
     });
     
-    const { data, error } = await supabase.functions.invoke('extract-text-from-document', {
-      body: { fileData, fileType: file.type }
-    });
-    
-    if (error) {
+    try {
+      const data = await extractTextFromDocument(fileData, file.type);
+      if (data?.extractedText) {
+        appendText(`\n\n--- Extracted from ${file.name} ---\n${data.extractedText}`);
+        extractedSet.add(file.name);
+      }
+    } catch {
       toast({
         title: "Extraction failed",
         description: `Could not extract text from ${file.name}. Please review and make corrections manually.`,
         variant: "destructive"
       });
-      return;
-    }
-    
-    if (data?.extractedText) {
-      appendText(`\n\n--- Extracted from ${file.name} ---\n${data.extractedText}`);
-      extractedSet.add(file.name);
     }
   };
 

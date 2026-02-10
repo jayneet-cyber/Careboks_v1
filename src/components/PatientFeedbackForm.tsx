@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { requestBackendPublic } from "@/integrations/auth/backendApi";
 
 const STORAGE_KEY = 'patientFeedbackSubmitted';
 
@@ -126,15 +126,16 @@ export const PatientFeedbackForm = ({
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from('patient_feedback').insert({
-        case_id: caseId,
-        published_document_id: publishedDocumentId,
-        feedback_source: 'qr_view',
-        selected_options: selectedOptions,
-        additional_comments: additionalComments.trim() || null
+      await requestBackendPublic("/public/patient-feedback", {
+        method: "POST",
+        body: {
+          caseId,
+          publishedDocumentId,
+          feedbackSource: "qr_view",
+          selectedOptions,
+          additionalComments: additionalComments.trim() || null
+        }
       });
-
-      if (error) throw error;
 
       // Save to localStorage to prevent re-submission
       try {
