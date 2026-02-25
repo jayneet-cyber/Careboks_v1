@@ -36,7 +36,13 @@ CORE PRINCIPLES:
 6. ACKNOWLEDGE GAPS: When uncertain, say "We don't yet know"
 
 OUTPUT STRUCTURE:
-You must generate content for exactly 7 sections. Use the structured output tool to ensure all sections are present. For each section prioritize writing in bullet points;`;
+You must generate content for exactly 7 sections. Use the structured output tool to ensure all sections are present.
+
+FORMATTING REQUIREMENTS:
+- Use bullet points where it is appropriate for readability
+- Use bold text for section headers and key terms
+- Break information into short paragraphs or lines for easier reading
+- Avoid long paragraphs - prioritize bullet lists for readability`;
 
 export const getPersonalizationInstructions = (profile: PatientProfile): string => {
   let instructions = `\nPERSONALIZATION REQUIREMENTS:\n`;

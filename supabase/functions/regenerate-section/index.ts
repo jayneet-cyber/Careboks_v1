@@ -177,7 +177,6 @@ serve(async (req) => {
     const { 
       sectionIndex, 
       sectionTitle, 
-      currentContent,
       analysis, 
       patientData, 
       technicalNote 
@@ -273,7 +272,10 @@ GUIDELINES: ${sectionGuidelines[sectionIndex as keyof typeof sectionGuidelines] 
 CRITICAL INSTRUCTIONS:
 - Generate content ONLY for the section: "${sectionTitle}"
 - Do NOT include section separators, dividers, or the section title
-- Return ONLY the paragraph text for this section
+- Return ONLY the section body text (no title), using readable markdown structure:
+  - Bullet points where useful
+  - **Bold** for key medical terms or actions
+  - Short lines/paragraphs for readability
 - Use all medical information to answer this specific question
 - Follow all personalization requirements for this patient
 - Write in ${profile.language}

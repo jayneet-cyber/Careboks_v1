@@ -19,6 +19,41 @@ import { Edit2, Check, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 
+const hasMarkdownFormatting = (value: string): boolean => {
+  return /(\*\*[^*]+\*\*)|(^\s*[-*+]\s)|(^\s*\d+\.\s)/m.test(value);
+};
+
+const formatPlainTextAsMarkdown = (value: string): string => {
+  const normalized = value.replace(/\r\n/g, "\n").trim();
+  if (!normalized || hasMarkdownFormatting(normalized)) {
+    return normalized;
+  }
+
+  const sourceLines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const candidateLines = sourceLines.length > 1
+    ? sourceLines
+    : normalized
+        .replace(/\s+/g, " ")
+        .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+  if (candidateLines.length <= 1) {
+    return normalized;
+  }
+
+  const formattedLines = candidateLines.map((line) => {
+    const lineWithoutLeadingBullet = line.replace(/^[-*+]\s+/, "").trim();
+    return lineWithoutLeadingBullet.replace(/^([^:\n]{2,80}:)\s*/, "**$1** ");
+  });
+
+  return formattedLines.map((line) => `- ${line}`).join("\n");
+};
+
 /**
  * Props for the SectionBox component
  */
@@ -71,6 +106,7 @@ export const SectionBox = ({
 }: SectionBoxProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
+  const displayContent = formatPlainTextAsMarkdown(content);
 
   const isEmpty = !content || content.trim().length === 0;
 
@@ -154,8 +190,14 @@ export const SectionBox = ({
                 No content generated for this section. Click Edit to add information.
               </p>
             ) : (
-              <div className="prose prose-sm max-w-none text-foreground">
-                <ReactMarkdown>{content}</ReactMarkdown>
+              <div className="prose prose-sm max-w-none text-foreground [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_p]:my-2 [&_strong]:font-semibold [&_h1]:text-base [&_h2]:text-base">
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="whitespace-pre-line">{children}</p>,
+                  }}
+                >
+                  {displayContent}
+                </ReactMarkdown>
               </div>
             )}
 

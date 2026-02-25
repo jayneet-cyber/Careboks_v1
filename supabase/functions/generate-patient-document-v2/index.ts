@@ -153,11 +153,15 @@ Generate a patient-friendly medical communication document.
 
 CRITICAL OUTPUT RULES:
 - Return ONLY valid JSON
-- No markdown, no code blocks, no backticks
+- Do not wrap response in markdown code blocks or backticks
 - No explanations before or after the JSON
 - No extra keys beyond the 7 required sections
 - All 7 sections MUST be present
 - Each section must be at least 50 characters
+- Inside each section string, use readable markdown structure where helpful:
+  - Bullet lists for actions/steps/warning signs
+  - **Bold** for key terms
+  - Line breaks for readability
 
 REQUIRED JSON STRUCTURE (copy this exactly):
 {
@@ -228,7 +232,7 @@ CRITICAL REQUIREMENTS FOR THIS RETRY:
 - ALL 7 sections MUST be present and substantive (minimum 50 characters each)
 - Section 6 (Warning Signs) MUST include emergency number 112
 - Never use phrases like "I don't know" - use "Your doctor will provide this information"
-- Return ONLY valid JSON, no markdown, no explanations
+- Return ONLY valid JSON object with no explanations before/after it
 
 ${basePrompt}`;
       }
