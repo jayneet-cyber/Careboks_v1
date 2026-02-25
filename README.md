@@ -70,7 +70,16 @@ VITE_SUPABASE_URL= local supabase URL
 
 MY_IBM_KEY= Your IBM (IAM Token) Key
 WATSONX_PROJECT_ID= Your atsonx project ID
+APP_ORIGIN= https://your-domain.example
 ```
+
+`APP_ORIGIN` is required in production for Edge Function CORS allowlisting.
+
+## 🚀 Hetzner Debian Deployment (Self-Hosted Supabase)
+
+For production deployment on a Debian VM with Nginx + HTTPS, see:
+
+- `docs/deployment-hetzner-debian.md`
 
 ### Running Locally
 

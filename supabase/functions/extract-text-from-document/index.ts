@@ -1,9 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const APP_ORIGIN = Deno.env.get("APP_ORIGIN") ?? "";
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const requestOrigin = req.headers.get("origin");
+  const allowedOrigin = !requestOrigin
+    ? APP_ORIGIN || "null"
+    : requestOrigin === APP_ORIGIN
+      ? requestOrigin
+      : "null";
+
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    Vary: "Origin",
+  };
+}
 
 const WATSONX_URL = "https://eu-de.ml.cloud.ibm.com/ml/v1/text/chat?version=2023-05-29";
 
@@ -69,6 +82,8 @@ async function getIAMToken(apiKey: string): Promise<string> {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
