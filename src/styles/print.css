@@ -234,6 +234,35 @@ html.is-printing .print-content-grid {
   color: hsl(var(--print-text));
 }
 
+.print-body p {
+  margin: 0 0 6px;
+  white-space: pre-line;
+}
+
+.print-body ul {
+  list-style: disc;
+  padding-left: 18px;
+  margin: 6px 0;
+}
+
+.print-body ol {
+  list-style: decimal;
+  padding-left: 18px;
+  margin: 6px 0;
+}
+
+.print-body li {
+  margin: 2px 0;
+}
+
+.print-body strong {
+  font-weight: 700;
+}
+
+.print-body em {
+  font-style: italic;
+}
+
 .print-body-large {
   font-size: 13px;
   line-height: 1.45;

@@ -3,7 +3,11 @@ export const hasMarkdownFormatting = (value: string): boolean => {
 };
 
 export const formatPlainTextAsMarkdown = (value: string): string => {
-  const normalized = value.replace(/\r\n/g, "\n").trim();
+  const normalized = value
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .trim();
   if (!normalized || hasMarkdownFormatting(normalized)) {
     return normalized;
   }

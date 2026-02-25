@@ -241,6 +241,17 @@ export default function PrintPreview() {
               <p className="text-sm text-green-700">
                 The QR code on the printed document will allow patients to access their care document online.
               </p>
+              <div className="mt-3 rounded-md border border-green-200 bg-white p-2">
+                <p className="text-xs font-medium text-green-900 mb-1">Patient Link</p>
+                <a
+                  href={publishedUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-green-700 underline break-all"
+                >
+                  {publishedUrl}
+                </a>
+              </div>
             </CardContent>
           </Card>
         </div>
