@@ -8,10 +8,13 @@
  */
 
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
-// Configure pdf.js worker for async processing
-GlobalWorkerOptions.workerSrc = pdfjsWorker;
+if (typeof window !== 'undefined' && 'Worker' in window) {
+  GlobalWorkerOptions.workerPort = new Worker(
+    new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url),
+    { type: 'module' }
+  );
+}
 
 /**
  * Options for PDF to image conversion
