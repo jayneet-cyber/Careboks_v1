@@ -117,6 +117,27 @@ export default function PrintPreview() {
     year: 'numeric'
   });
 
+  const fallbackCopy = (text: string): boolean => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.setAttribute('readonly', '');
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    textArea.setSelectionRange(0, text.length);
+
+    let copiedSuccessfully = false;
+    try {
+      copiedSuccessfully = document.execCommand('copy');
+    } catch {
+      copiedSuccessfully = false;
+    }
+
+    document.body.removeChild(textArea);
+    return copiedSuccessfully;
+  };
+
   /**
    * Copies URL to clipboard
    */
@@ -124,11 +145,19 @@ export default function PrintPreview() {
     if (!publishedUrl) return;
     
     try {
-      await navigator.clipboard.writeText(publishedUrl);
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(publishedUrl);
+      } else {
+        const copiedSuccessfully = fallbackCopy(publishedUrl);
+        if (!copiedSuccessfully) {
+          throw new Error('Clipboard API unavailable');
+        }
+      }
+
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Silently fail - the button state provides feedback
+      window.prompt('Copy patient link:', publishedUrl);
     }
   };
 

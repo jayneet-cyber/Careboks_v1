@@ -7,6 +7,7 @@
  */
 
 import ReactMarkdown from 'react-markdown';
+import { formatPlainTextAsMarkdown } from '@/utils/markdownFormatting';
 
 interface PrintMedicationsProps {
   /** Medication content (markdown) */
@@ -27,6 +28,7 @@ const HEADERS: Record<string, string> = {
 export const PrintMedications = ({ content, language }: PrintMedicationsProps) => {
   const normalizedLang = language?.toLowerCase() || 'english';
   const header = HEADERS[normalizedLang] || HEADERS.english;
+  const displayContent = formatPlainTextAsMarkdown(content);
   
   return (
     <div className="print-section print-section--pink">
@@ -34,7 +36,13 @@ export const PrintMedications = ({ content, language }: PrintMedicationsProps) =
         💊 {header}
       </h2>
       <div className="print-body print-body--compact">
-        <ReactMarkdown>{content}</ReactMarkdown>
+        <ReactMarkdown
+          components={{
+            p: ({ children }) => <p className="whitespace-pre-line">{children}</p>,
+          }}
+        >
+          {displayContent}
+        </ReactMarkdown>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@
  */
 
 import ReactMarkdown from 'react-markdown';
+import { formatPlainTextAsMarkdown } from '@/utils/markdownFormatting';
 
 interface PrintWarningsProps {
   /** Warning content (markdown) */
@@ -26,6 +27,7 @@ const HEADERS: Record<string, string> = {
 export const PrintWarnings = ({ content, language }: PrintWarningsProps) => {
   const normalizedLang = language?.toLowerCase() || 'english';
   const header = HEADERS[normalizedLang] || HEADERS.english;
+  const displayContent = formatPlainTextAsMarkdown(content);
   
   return (
     <div className="print-section print-section--red">
@@ -33,7 +35,13 @@ export const PrintWarnings = ({ content, language }: PrintWarningsProps) => {
         ⚠️ {header}
       </h2>
       <div className="print-body">
-        <ReactMarkdown>{content}</ReactMarkdown>
+        <ReactMarkdown
+          components={{
+            p: ({ children }) => <p className="whitespace-pre-line">{children}</p>,
+          }}
+        >
+          {displayContent}
+        </ReactMarkdown>
       </div>
     </div>
   );

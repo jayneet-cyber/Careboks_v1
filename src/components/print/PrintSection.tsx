@@ -6,6 +6,7 @@
  */
 
 import ReactMarkdown from 'react-markdown';
+import { formatPlainTextAsMarkdown } from '@/utils/markdownFormatting';
 
 export type SectionVariant = 'teal' | 'pink' | 'red' | 'neutral' | 'contacts';
 
@@ -32,6 +33,8 @@ export const PrintSection = ({
   icon,
   className = '' 
 }: PrintSectionProps) => {
+  const displayContent = formatPlainTextAsMarkdown(content);
+
   return (
     <div className={`print-section print-section--${variant} ${className}`}>
       <h2 className="print-section-header flex items-center gap-2">
@@ -39,7 +42,13 @@ export const PrintSection = ({
         {title}
       </h2>
       <div className="print-body">
-        <ReactMarkdown>{content}</ReactMarkdown>
+        <ReactMarkdown
+          components={{
+            p: ({ children }) => <p className="whitespace-pre-line">{children}</p>,
+          }}
+        >
+          {displayContent}
+        </ReactMarkdown>
       </div>
     </div>
   );
