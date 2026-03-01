@@ -76,6 +76,17 @@ const TechnicalNoteInput = ({
   const { toast } = useToast();
   const { createCase, updateCase } = useCasePersistence();
 
+  const getFunctionAuthHeaders = async (): Promise<Record<string, string>> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error("Session expired. Please log in again.");
+    }
+
+    return {
+      Authorization: `Bearer ${session.access_token}`,
+    };
+  };
+
   /**
    * Handles file upload from input element
    * Validates file types and enforces upload limits
@@ -204,6 +215,8 @@ const TechnicalNoteInput = ({
     let fileExtracted = false;
     
     try {
+      const authHeaders = await getFunctionAuthHeaders();
+
       const images = await pdfToImageDataUrls(file, {
         maxPages: MAX_PAGES_PER_DOCUMENT,
         scale: 1.0
@@ -212,7 +225,8 @@ const TechnicalNoteInput = ({
       for (const imgUrl of images) {
         pageIndex++;
         const { data, error } = await supabase.functions.invoke('extract-text-from-document', {
-          body: { fileData: imgUrl, fileType: 'image/png' }
+          body: { fileData: imgUrl, fileType: 'image/png' },
+          headers: authHeaders,
         });
         
         if (error) {
@@ -251,6 +265,8 @@ const TechnicalNoteInput = ({
     extractedSet: Set<string>,
     appendText: (text: string) => void
   ) => {
+    const authHeaders = await getFunctionAuthHeaders();
+
     const reader = new FileReader();
     const fileData = await new Promise<string>((resolve, reject) => {
       reader.onload = () => resolve(reader.result as string);
@@ -259,7 +275,8 @@ const TechnicalNoteInput = ({
     });
     
     const { data, error } = await supabase.functions.invoke('extract-text-from-document', {
-      body: { fileData, fileType: file.type }
+      body: { fileData, fileType: file.type },
+      headers: authHeaders,
     });
     
     if (error) {
