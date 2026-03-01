@@ -4,8 +4,8 @@ This guide documents the live deployment of Careboks on Debian VM with:
 - Frontend served by Nginx (SPA with fallback routing)
 - Local Supabase via Docker Compose (CLI-based)
 - Supabase API & Studio proxied through Nginx
-- Temporary HTTP setup via VM public IP (no domain/TLS yet)
-- Live IP: `89.167.108.70`
+- HTTPS domain setup via Let's Encrypt certificate
+- Live domain: `https://careboks.eu`
 
 ## ✅ Implementation Summary (What We Did)
 
@@ -37,7 +37,7 @@ sudo rsync -a --delete dist/ /var/www/careboks/
 ```
 
 **5) Nginx Configured ✅**
-- Frontend served from `/var/www/careboks` at `http://89.167.108.70/`
+- Frontend served from `/var/www/careboks` at `https://careboks.eu/`
 - SPA fallback enabled for routes (`/app`, `/account`, `/document/:token`)
 - Supabase API paths proxied to local Kong API gateway on port `54321`
 - Studio paths proxied to port `54323`
@@ -58,8 +58,8 @@ All three functions now enforce `APP_ORIGIN` allowlisting instead of wildcard `*
 - `supabase/functions/regenerate-section/index.ts`
 
 **8) Frontend & Studio Accessible ✅**
-- Frontend: `http://89.167.108.70/`
-- Studio: `http://89.167.108.70/studio/` → redirects to `/project/default`
+- Frontend: `https://careboks.eu/`
+- Studio: `https://careboks.eu/studio/` → redirects to `/project/default`
 
 ---
 
@@ -68,16 +68,36 @@ All three functions now enforce `APP_ORIGIN` allowlisting instead of wildcard `*
 ### Nginx Site Config
 Location: `/etc/nginx/sites-available/careboks`
 
-Serves frontend on `/`, proxies Supabase paths to local containers:
+Serves frontend on `/`, redirects HTTP to HTTPS, proxies Supabase paths to local containers, and includes the `.mjs` worker MIME fix used for PDF extraction:
 
 ```nginx
 server {
   listen 80;
-  server_name _;
+  server_name careboks.eu www.careboks.eu;
+  return 301 https://$host$request_uri;
+}
+
+server {
+  listen 443 ssl http2;
+  server_name careboks.eu www.careboks.eu;
+
+  ssl_certificate /etc/letsencrypt/live/careboks.eu/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/careboks.eu/privkey.pem;
 
   root /var/www/careboks;
   index index.html;
   client_max_body_size 25M;
+
+  # Ensure PDF.js worker modules are served with JS MIME type
+  location ~* \.mjs$ {
+    types { application/javascript mjs; }
+    default_type application/javascript;
+  }
+
+  # Static assets must not fall back to index.html
+  location /assets/ {
+    try_files $uri =404;
+  }
 
   # Frontend SPA fallback
   location / {
@@ -147,7 +167,7 @@ server {
 File: `/opt/careboks/.env.production`
 
 ```env
-VITE_SUPABASE_URL=http://89.167.108.70
+VITE_SUPABASE_URL=https://careboks.eu
 VITE_SUPABASE_PUBLISHABLE_KEY=<anon key from supabase status>
 VITE_SUPABASE_PROJECT_ID=careboks-main
 ```
@@ -156,27 +176,27 @@ VITE_SUPABASE_PROJECT_ID=careboks-main
 File: `/opt/careboks/.env` (used by `npx supabase functions serve`)
 
 ```env
-APP_ORIGIN=http://89.167.108.70
+APP_ORIGIN=https://careboks.eu
 MY_IBM_KEY=<your IBM Watson API key>
 WATSONX_PROJECT_ID=<your WatsonX project ID>
 ```
 
 ---
 
-## 🚀 Next Steps (When You Have a Domain)
+## 🚀 Post-Cutover Notes
 
-1. **Point DNS A record** to `89.167.108.70`
+1. **DNS A record** should point to `89.167.108.70`
 
-2. **Enable HTTPS & auto-renew:**
+2. **HTTPS certificate (issued):**
    ```bash
-   sudo certbot --nginx -d yourdomain.example
+  sudo certbot --nginx -d careboks.eu -d www.careboks.eu
    sudo systemctl status certbot.timer
    ```
 
-3. **Update all references** from `http://89.167.108.70` to `https://yourdomain.example`:
-   - Edit `.env.production` → rebuild frontend
-   - Edit `.env` (edge functions) → restart functions
-   - Edit `supabase/config.toml` → update `site_url` and redirect allowlist
+3. **Keep all references aligned to HTTPS domain:**
+  - `.env.production` uses `VITE_SUPABASE_URL=https://careboks.eu`
+  - `.env` uses `APP_ORIGIN=https://careboks.eu`
+  - `supabase/config.toml` uses `site_url=https://careboks.eu` and matching redirect URLs
 
 4. **Rebuild & restart:**
    ```bash
@@ -205,6 +225,64 @@ npx supabase start
 npx supabase functions serve --env-file ./.env &
 ```
 
+## ▶ Server Steps to Run Careboks
+
+Use this sequence whenever you want to bring the full stack up on the server.
+
+1) Go to project directory
+```bash
+cd /opt/careboks
+```
+
+2) Pull latest code
+```bash
+git pull --ff-only
+```
+
+3) Install/update dependencies
+```bash
+npm ci
+```
+
+4) Start local Supabase
+```bash
+npx supabase start
+```
+
+5) Start edge functions with env (APP_ORIGIN + IBM secrets)
+```bash
+pkill -f "supabase functions serve" || true
+nohup npx supabase functions serve --env-file ./.env > /var/log/supabase-functions.log 2>&1 &
+```
+
+6) Build frontend
+```bash
+npm run build
+```
+
+7) Publish frontend static files
+```bash
+sudo rsync -a --delete dist/ /var/www/careboks/
+```
+
+8) Reload Nginx
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+9) Quick health checks
+```bash
+curl -I http://127.0.0.1/
+curl -I http://127.0.0.1/auth/v1/health
+curl -I http://127.0.0.1/assets/
+tail -n 50 /var/log/supabase-functions.log
+```
+
+10) Open in browser
+- App: `https://careboks.eu/`
+- Studio: `https://careboks.eu/studio/`
+
 **Restart Nginx:**
 ```bash
 sudo nginx -t
@@ -228,13 +306,16 @@ docker ps --filter label=com.docker.compose.project=supabase
 
 ## ✅ Current Validation Status
 
-- [x] Frontend loads at `http://89.167.108.70/`
+- [x] Frontend loads at `https://careboks.eu/`
 - [x] SPA routes functional (`/`) with fallback
-- [x] Studio accessible at `http://89.167.108.70/studio/` → `/project/default`
+- [x] Studio accessible at `https://careboks.eu/studio/` → `/project/default`
 - [x] Nginx proxying all Supabase API paths correctly
 - [x] Edge functions running with CORS allowlist enforcement
-- [ ] User login/signup (pending: auth config alignment with Supabase)
-- [ ] OCR/generation functions (pending: IBM credentials validation)
+- [x] User login/signup working
+- [x] OCR and AI generation working
+- [x] PDF extraction working (worker + MIME configuration fixed)
+- [x] Copy patient link working in Print Preview (HTTP fallback implemented)
+- [x] Print Preview and final print formatting aligned (markdown normalization + print typography)
 
 ---
 
@@ -262,7 +343,7 @@ docker ps --filter label=com.docker.compose.project=supabase
 - Confirm Docker containers running: `docker ps | grep studio`
 
 **CORS errors on function calls:**
-- Verify `APP_ORIGIN=http://89.167.108.70` in `/opt/careboks/.env`
+- Verify `APP_ORIGIN=https://careboks.eu` in `/opt/careboks/.env`
 - Restart functions: `npx supabase functions serve --env-file ./.env`
 - Check browser console for exact error
 
@@ -271,7 +352,17 @@ docker ps --filter label=com.docker.compose.project=supabase
 - Rebuild: `npm run build && sudo rsync -a dist/ /var/www/careboks/`
 - Check: `curl -I http://127.0.0.1/auth/v1/health` from VM
 
+**PDF extraction fails with "fake worker" error:**
+- Verify `.mjs` MIME header:
+  - `curl -I https://careboks.eu/assets/<pdf-worker-file>.mjs`
+  - Must return `Content-Type: application/javascript`
+- Ensure Nginx has the `location ~* \.mjs$` block and reload Nginx
+
+**Copy Link button does not copy on HTTP/IP setup:**
+- This is expected on some browsers when Clipboard API is restricted
+- Current app includes fallback copy logic and also displays the patient link in Print Preview for manual copy/open
+
 **Auth workflow fails:**
 - Update `supabase/config.toml` → `site_url` and `additional_redirect_urls`
-- Ensure they match your actual origin (currently `http://89.167.108.70`)
+- Ensure they match your actual origin (currently `https://careboks.eu`)
 - Restart Supabase: `npx supabase stop && npx supabase start`

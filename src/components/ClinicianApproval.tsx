@@ -134,9 +134,19 @@ export const ClinicianApproval = ({
     setGenerationError('');
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Session expired. Please log in again.');
+      }
+
       const { data: documentData, error: documentError } = await supabase.functions.invoke(
         'generate-patient-document-v2',
-        { body: { technicalNote, patientData } }
+        {
+          body: { technicalNote, patientData },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
       );
 
       if (documentError) throw documentError;
@@ -205,6 +215,11 @@ export const ClinicianApproval = ({
     setRegeneratingIndex(index);
     
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Session expired. Please log in again.');
+      }
+
       const { data, error } = await supabase.functions.invoke('regenerate-section', {
         body: {
           sectionIndex: index,
@@ -213,7 +228,10 @@ export const ClinicianApproval = ({
           analysis: analysis,
           patientData: patientData,
           technicalNote: technicalNote,
-        }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
       
       if (error) throw error;
