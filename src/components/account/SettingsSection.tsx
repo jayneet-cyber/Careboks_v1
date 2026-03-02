@@ -30,7 +30,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { hasVerifiedTotpFactor, listTotpFactors } from "@/lib/mfa";
@@ -55,7 +54,6 @@ interface SettingsSectionProps {
  * ```
  */
 const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const [loadingSecurity, setLoadingSecurity] = useState(true);
@@ -193,11 +191,11 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
                 </Badge>
               </div>
 
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start justify-between gap-4">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Shield className="h-5 w-5 text-primary" />
                 </div>
-                <div>
+                <div className="flex-1 text-left">
                   <p className="font-medium">Require MFA for every login</p>
                   <p className="text-sm text-muted-foreground">
                     If disabled, MFA remains configured but is not required each login.
@@ -214,16 +212,6 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
                     Enforce
                   </Label>
                 </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/mfa")}
-                  disabled={loadingSecurity}
-                >
-                  {hasConfiguredMfa ? "Verify MFA now" : "Set up MFA"}
-                </Button>
               </div>
 
               {loadingSecurity && (
