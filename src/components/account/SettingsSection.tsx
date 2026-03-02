@@ -15,6 +15,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { LogOut, Shield, Bell, Palette } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +29,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { hasVerifiedTotpFactor, listTotpFactors } from "@/lib/mfa";
 
 /**
  * Props for the SettingsSection component
@@ -47,6 +55,114 @@ interface SettingsSectionProps {
  * ```
  */
 const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const [loadingSecurity, setLoadingSecurity] = useState(true);
+  const [savingSecurity, setSavingSecurity] = useState(false);
+  const [hasConfiguredMfa, setHasConfiguredMfa] = useState(false);
+  const [enforceEveryLogin, setEnforceEveryLogin] = useState(false);
+
+  const loadSecurityState = useCallback(async () => {
+    setLoadingSecurity(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setLoadingSecurity(false);
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("mfa_enforced_every_login, mfa_enrolled_at")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError) {
+      toast({
+        title: "Could not load security settings",
+        description: profileError.message,
+        variant: "destructive",
+      });
+      setLoadingSecurity(false);
+      return;
+    }
+
+    const { factors, error: factorsError } = await listTotpFactors();
+    if (factorsError) {
+      toast({
+        title: "Could not load MFA status",
+        description: factorsError.message,
+        variant: "destructive",
+      });
+      setLoadingSecurity(false);
+      return;
+    }
+
+    const hasVerifiedFactor = hasVerifiedTotpFactor(factors);
+    setHasConfiguredMfa(hasVerifiedFactor);
+    setEnforceEveryLogin(Boolean(profile.mfa_enforced_every_login));
+
+    if (hasVerifiedFactor && !profile.mfa_enrolled_at) {
+      await supabase
+        .from("profiles")
+        .update({ mfa_enrolled_at: new Date().toISOString() })
+        .eq("id", user.id);
+    }
+
+    setLoadingSecurity(false);
+  }, [toast]);
+
+  useEffect(() => {
+    loadSecurityState();
+  }, [loadSecurityState]);
+
+  const handleToggleEnforcement = async (checked: boolean) => {
+    if (!hasConfiguredMfa) {
+      toast({
+        title: "MFA setup required",
+        description: "Set up MFA before enabling per-login enforcement.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingSecurity(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setSavingSecurity(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ mfa_enforced_every_login: checked })
+      .eq("id", user.id);
+
+    if (error) {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setSavingSecurity(false);
+      return;
+    }
+
+    setEnforceEveryLogin(checked);
+    toast({
+      title: "Security settings updated",
+      description: checked ? "MFA will be required on every login." : "Regular login is enabled.",
+    });
+    setSavingSecurity(false);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -59,21 +175,60 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
         <CardContent className="space-y-6">
           <div className="space-y-4">
             {/* Security Settings */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
+            <div className="space-y-4 rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Shield className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Security</p>
+                    <p className="text-sm text-muted-foreground">
+                      Manage multi-factor authentication for your account
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={hasConfiguredMfa ? "default" : "secondary"}>
+                  {hasConfiguredMfa ? "MFA configured" : "Setup required"}
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Shield className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium">Security</p>
+                  <p className="font-medium">Require MFA for every login</p>
                   <p className="text-sm text-muted-foreground">
-                    Password and authentication settings
+                    If disabled, MFA remains configured but is not required each login.
                   </p>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={enforceEveryLogin}
+                    disabled={loadingSecurity || savingSecurity || !hasConfiguredMfa}
+                    onCheckedChange={(checked) => handleToggleEnforcement(checked === true)}
+                    id="mfa-enforce-checkbox"
+                  />
+                  <Label htmlFor="mfa-enforce-checkbox" className="text-sm">
+                    Enforce
+                  </Label>
+                </div>
               </div>
-              <Button variant="outline" disabled>
-                Coming Soon
-              </Button>
+
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/mfa")}
+                  disabled={loadingSecurity}
+                >
+                  {hasConfiguredMfa ? "Verify MFA now" : "Set up MFA"}
+                </Button>
+              </div>
+
+              {loadingSecurity && (
+                <p className="text-sm text-muted-foreground">Loading security settings...</p>
+              )}
             </div>
 
             <Separator />

@@ -81,6 +81,29 @@ For production deployment on a Debian VM with Nginx + HTTPS, see:
 
 - `docs/deployment-hetzner-debian.md`
 
+## 🔐 MFA Authentication Rules
+
+- All accounts must complete TOTP MFA setup before dashboard access.
+- New users are blocked to MFA setup after first authentication.
+- Existing users without enrolled MFA are blocked to MFA setup on next login.
+- After first setup, users can choose in Account Settings whether MFA is required on every login.
+- This behavior is controlled by `profiles.mfa_enforced_every_login` and `profiles.mfa_enrolled_at`.
+
+### MFA Local Config
+
+Ensure Supabase Auth MFA TOTP is enabled in `supabase/config.toml`:
+
+- `[auth.mfa.totp].enroll_enabled = true`
+- `[auth.mfa.totp].verify_enabled = true`
+
+Apply migrations so profile MFA fields exist:
+
+```bash
+npx supabase db reset
+# or
+npx supabase migration up
+```
+
 ### Running Locally
 
 #### Start Supabase (Backend)
@@ -139,6 +162,7 @@ src/
 │   ├── Index.tsx           # Main 5-step workflow
 │   ├── Landing.tsx         # Public landing page
 │   ├── Auth.tsx            # Authentication
+│   ├── MfaGate.tsx         # Mandatory MFA setup/verification gate
 │   ├── Account.tsx         # User settings
 │   ├── PrintPreview.tsx    # A4 document preview
 │   ├── PatientDocument.tsx # Public patient document view
@@ -174,7 +198,7 @@ All edge functions run on Deno runtime with automatic JWT verification.
 
 | Table | Purpose |
 |-------|---------|
-| `profiles` | User accounts with name, email, role, language |
+| `profiles` | User accounts with name, email, role, language, MFA preference flags |
 | `patient_cases` | Case tracking with status workflow |
 | `patient_profiles` | Patient attributes linked to cases |
 | `ai_analyses` | Stored AI drafts and analysis data |

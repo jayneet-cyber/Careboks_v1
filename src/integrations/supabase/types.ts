@@ -320,6 +320,8 @@ export type Database = {
           id: string
           language: string | null
           last_name: string | null
+          mfa_enforced_every_login: boolean
+          mfa_enrolled_at: string | null
           role: string | null
           updated_at: string
         }
@@ -330,6 +332,8 @@ export type Database = {
           id: string
           language?: string | null
           last_name?: string | null
+          mfa_enforced_every_login?: boolean
+          mfa_enrolled_at?: string | null
           role?: string | null
           updated_at?: string
         }
@@ -340,6 +344,8 @@ export type Database = {
           id?: string
           language?: string | null
           last_name?: string | null
+          mfa_enforced_every_login?: boolean
+          mfa_enrolled_at?: string | null
           role?: string | null
           updated_at?: string
         }
