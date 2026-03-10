@@ -1,12 +1,18 @@
-import { useState, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import MedicalHeader from "@/components/MedicalHeader";
-import TechnicalNoteInput from "@/components/TechnicalNoteInput";
-import PatientProfile from "@/components/PatientProfile";
-import { ClinicianApproval } from "@/components/ClinicianApproval";
-import { Feedback } from "@/components/Feedback";
 import { ParsedSection } from "@/utils/draftParser";
 import { useCasePersistence } from "@/hooks/useCasePersistence";
+import { normalizeSelectedSectionIds, type SectionId } from "@/lib/documentSections";
+
+const TechnicalNoteInput = lazy(() => import("@/components/TechnicalNoteInput"));
+const PatientProfile = lazy(() => import("@/components/PatientProfile"));
+const ClinicianApproval = lazy(() =>
+  import("@/components/ClinicianApproval").then((module) => ({ default: module.ClinicianApproval }))
+);
+const Feedback = lazy(() =>
+  import("@/components/Feedback").then((module) => ({ default: module.Feedback }))
+);
 
 type Step = 'input' | 'profile' | 'approval' | 'output' | 'feedback';
 
@@ -20,6 +26,7 @@ interface PatientData {
   hasAccessibilityNeeds: boolean;
   includeRelatives: boolean;
   comorbidities: string[];
+  selectedSectionIds: SectionId[];
 }
 
 interface LocationState {
@@ -81,7 +88,8 @@ const Index = ({ onLogout }: IndexProps) => {
               riskAppetite: profile.risk_appetite || "",
               hasAccessibilityNeeds: profile.has_accessibility_needs || false,
               includeRelatives: profile.include_relatives || false,
-              comorbidities: profile.comorbidities || []
+              comorbidities: profile.comorbidities || [],
+              selectedSectionIds: normalizeSelectedSectionIds(profile.selected_section_ids)
             });
           }
           
@@ -177,44 +185,46 @@ const Index = ({ onLogout }: IndexProps) => {
       />
       
       <main className="container mx-auto px-4 py-6 md:px-6 md:py-8">
-        {currentStep === 'input' && (
-          <TechnicalNoteInput 
-            onNext={handleTechnicalNoteSubmit} 
-            initialNote={technicalNote}
-            caseId={currentCaseId}
-          />
-        )}
-        
-        {currentStep === 'profile' && currentCaseId && (
-          <PatientProfile 
-            caseId={currentCaseId}
-            onNext={handlePatientProfileSubmit} 
-            onBack={handleBack}
-            initialData={patientData || undefined}
-          />
-        )}
-        
-        {currentStep === 'approval' && currentCaseId && patientData && (
-          <ClinicianApproval 
-            caseId={currentCaseId}
-            draft={aiDraft}
-            sections={approvedSections.length > 0 ? approvedSections : aiSections}
-            analysis={analysis}
-            patientData={patientData}
-            technicalNote={technicalNote}
-            onApprove={handleClinicianApproval}
-            onBack={handleBackToProfile}
-          />
-        )}
+        <Suspense fallback={<div className="min-h-[240px]" />}>
+          {currentStep === 'input' && (
+            <TechnicalNoteInput 
+              onNext={handleTechnicalNoteSubmit} 
+              initialNote={technicalNote}
+              caseId={currentCaseId}
+            />
+          )}
+          
+          {currentStep === 'profile' && currentCaseId && (
+            <PatientProfile 
+              caseId={currentCaseId}
+              onNext={handlePatientProfileSubmit} 
+              onBack={handleBack}
+              initialData={patientData || undefined}
+            />
+          )}
+          
+          {currentStep === 'approval' && currentCaseId && patientData && (
+            <ClinicianApproval 
+              caseId={currentCaseId}
+              draft={aiDraft}
+              sections={approvedSections.length > 0 ? approvedSections : aiSections}
+              analysis={analysis}
+              patientData={patientData}
+              technicalNote={technicalNote}
+              onApprove={handleClinicianApproval}
+              onBack={handleBackToProfile}
+            />
+          )}
 
-        {currentStep === 'feedback' && currentCaseId && (
-          <Feedback 
-            caseId={currentCaseId}
-            sections={approvedSections.length > 0 ? approvedSections : aiSections}
-            onBack={handleFeedbackBack}
-            onRestart={handleRestart}
-          />
-        )}
+          {currentStep === 'feedback' && currentCaseId && (
+            <Feedback 
+              caseId={currentCaseId}
+              sections={approvedSections.length > 0 ? approvedSections : aiSections}
+              onBack={handleFeedbackBack}
+              onRestart={handleRestart}
+            />
+          )}
+        </Suspense>
       </main>
     </div>
   );

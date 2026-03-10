@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Loader2, Phone, Mail, Star } from "lucide-react";
+import { useAppLanguage } from "@/lib/i18n";
 
 /** Maximum number of contacts allowed per user */
 const MAX_CONTACTS = 5;
@@ -55,6 +56,7 @@ const ContactsSection = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const { toast } = useToast();
+  const { t } = useAppLanguage();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -89,8 +91,8 @@ const ContactsSection = () => {
     } catch (error: any) {
       console.error('Error loading contacts:', error);
       toast({
-        title: "Error",
-        description: "Failed to load contacts",
+        title: t("Error"),
+        description: t("Failed to load contacts"),
         variant: "destructive"
       });
     } finally {
@@ -133,8 +135,8 @@ const ContactsSection = () => {
   const handleSave = async () => {
     if (!formData.name.trim()) {
       toast({
-        title: "Validation error",
-        description: "Name is required",
+        title: t("Validation error"),
+        description: t("Name is required"),
         variant: "destructive"
       });
       return;
@@ -142,8 +144,8 @@ const ContactsSection = () => {
 
     if (contacts.length >= MAX_CONTACTS && !editingContact) {
       toast({
-        title: "Limit reached",
-        description: `You can only have up to ${MAX_CONTACTS} contacts`,
+        title: t("Limit reached"),
+        description: t("You can only have up to {max} contacts", { max: MAX_CONTACTS }),
         variant: "destructive"
       });
       return;
@@ -184,8 +186,8 @@ const ContactsSection = () => {
       }
 
       toast({
-        title: "Success",
-        description: editingContact ? "Contact updated" : "Contact added"
+        title: t("Success"),
+        description: editingContact ? t("Contact updated") : t("Contact added")
       });
 
       setDialogOpen(false);
@@ -193,8 +195,8 @@ const ContactsSection = () => {
     } catch (error: any) {
       console.error('Error saving contact:', error);
       toast({
-        title: "Error",
-        description: "Failed to save contact",
+        title: t("Error"),
+        description: t("Failed to save contact"),
         variant: "destructive"
       });
     }
@@ -214,16 +216,16 @@ const ContactsSection = () => {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Contact deleted"
+        title: t("Success"),
+        description: t("Contact deleted")
       });
 
       loadContacts();
     } catch (error: any) {
       console.error('Error deleting contact:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete contact",
+        title: t("Error"),
+        description: t("Failed to delete contact"),
         variant: "destructive"
       });
     }
@@ -236,7 +238,7 @@ const ContactsSection = () => {
           <div>
             <CardTitle>Clinician Contacts</CardTitle>
             <CardDescription>
-              Manage your trusted clinician references (max {MAX_CONTACTS})
+              {t("Manage your trusted clinician references (max {max})", { max: MAX_CONTACTS })}
             </CardDescription>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -246,21 +248,21 @@ const ContactsSection = () => {
                 onClick={() => handleOpenDialog()}
               >
                 <Plus className="h-4 w-4" />
-                Add Contact
+                {t("Add Contact")}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {editingContact ? "Edit Contact" : "Add New Contact"}
+                  {editingContact ? t("Edit Contact") : t("Add New Contact")}
                 </DialogTitle>
                 <DialogDescription>
-                  Enter the clinician's information
+                  {t("Enter the clinician's information")}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name *</Label>
+                  <Label htmlFor="name">{t("Name *")}</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -270,7 +272,7 @@ const ContactsSection = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="specialty">Specialty</Label>
+                  <Label htmlFor="specialty">{t("Specialty")}</Label>
                   <Input
                     id="specialty"
                     value={formData.specialty}
@@ -280,7 +282,7 @@ const ContactsSection = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t("Phone")}</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -291,7 +293,7 @@ const ContactsSection = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t("Email")}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -302,12 +304,12 @@ const ContactsSection = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
+                  <Label htmlFor="notes">{t("Notes")}</Label>
                   <Textarea
                     id="notes"
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Additional information..."
+                    placeholder={t("Additional information...")}
                     rows={3}
                   />
                 </div>
@@ -319,16 +321,16 @@ const ContactsSection = () => {
                     onCheckedChange={(checked) => setFormData({ ...formData, is_primary: !!checked })}
                   />
                   <Label htmlFor="is_primary" className="text-sm font-normal">
-                    Mark as primary contact
+                    {t("Mark as primary contact")}
                   </Label>
                 </div>
 
                 <div className="flex justify-end space-x-2 pt-4">
                   <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancel
+                    {t("Cancel")}
                   </Button>
                   <Button onClick={handleSave}>
-                    {editingContact ? "Update" : "Add"}
+                    {editingContact ? t("Update") : t("Add")}
                   </Button>
                 </div>
               </div>
@@ -343,7 +345,7 @@ const ContactsSection = () => {
           </div>
         ) : contacts.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            <p>No contacts added yet</p>
+            <p>{t("No contacts added yet")}</p>
           </div>
         ) : (
           <div className="space-y-4">

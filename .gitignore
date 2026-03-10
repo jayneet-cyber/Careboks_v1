@@ -72,9 +72,17 @@ ehthumbs.db
 
 # implementation
 IMPLEMENTATION_SUMMARY.md
+language-implimentation.md
+PROMPTS_IMPLEMENTATION.local.md
 
 #copilot instructions
 .github/copilot-instructions.md
 
 # package-lock.json
 package-lock.json
+
+# local sbom artifact
+sbom.local.json
+docs/SBOM-THIRD-PARTY-COMPONENTS.md
+docs/SBOM_Components.txt
+dpa-2026-03-05.pdf

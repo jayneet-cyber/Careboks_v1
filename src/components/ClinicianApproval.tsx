@@ -25,6 +25,15 @@ import { usePublishedDocument } from "@/hooks/usePublishedDocument";
 import { SectionBox } from "@/components/SectionBox";
 import { parseDraftIntoSections, reconstructDraft, ParsedSection } from "@/utils/draftParser";
 import { parseStructuredDocument, structuredDocumentToText } from "@/utils/structuredDocumentParser";
+import { useAppLanguage } from "@/lib/i18n";
+import {
+  SECTION_IDS,
+  SECTION_TITLE_KEYS,
+  normalizeSelectedSectionIds,
+  filterSectionsBySelection,
+  withSectionIds,
+  type SectionId
+} from "@/lib/documentSections";
 
 /**
  * Props for the ClinicianApproval component
@@ -52,6 +61,10 @@ interface ClinicianApprovalProps {
  * Section configuration for display
  */
 interface SectionConfig {
+  /** Stable section id */
+  id: SectionId;
+  /** Original section index for AI regenerate endpoint */
+  originalIndex: number;
   /** Section title */
   title: string;
   /** Icon component */
@@ -62,14 +75,19 @@ interface SectionConfig {
 
 /** Section display configurations */
 const SECTION_CONFIGS: SectionConfig[] = [
-  { title: "What do I have", icon: <Heart />, themeColor: "text-blue-600" },
-  { title: "How should I live next", icon: <Activity />, themeColor: "text-green-600" },
-  { title: "How the next 6 months of my life will look like", icon: <Calendar />, themeColor: "text-purple-600" },
-  { title: "What does it mean for my life", icon: <Sparkles />, themeColor: "text-yellow-600" },
-  { title: "My medications", icon: <Pill />, themeColor: "text-orange-600" },
-  { title: "Warning signs", icon: <AlertTriangle />, themeColor: "text-red-600" },
-  { title: "My contacts", icon: <Phone />, themeColor: "text-teal-600" },
+  { id: SECTION_IDS[0], originalIndex: 0, title: SECTION_TITLE_KEYS.what_i_have, icon: <Heart />, themeColor: "text-blue-600" },
+  { id: SECTION_IDS[1], originalIndex: 1, title: SECTION_TITLE_KEYS.how_to_live, icon: <Activity />, themeColor: "text-green-600" },
+  { id: SECTION_IDS[2], originalIndex: 2, title: SECTION_TITLE_KEYS.timeline, icon: <Calendar />, themeColor: "text-purple-600" },
+  { id: SECTION_IDS[3], originalIndex: 3, title: SECTION_TITLE_KEYS.life_impact, icon: <Sparkles />, themeColor: "text-yellow-600" },
+  { id: SECTION_IDS[4], originalIndex: 4, title: SECTION_TITLE_KEYS.medications, icon: <Pill />, themeColor: "text-orange-600" },
+  { id: SECTION_IDS[5], originalIndex: 5, title: SECTION_TITLE_KEYS.warnings, icon: <AlertTriangle />, themeColor: "text-red-600" },
+  { id: SECTION_IDS[6], originalIndex: 6, title: SECTION_TITLE_KEYS.contacts, icon: <Phone />, themeColor: "text-teal-600" },
 ];
+
+const SECTION_CONFIG_BY_ID = SECTION_CONFIGS.reduce<Record<SectionId, SectionConfig>>((acc, config) => {
+  acc[config.id] = config;
+  return acc;
+}, {} as Record<SectionId, SectionConfig>);
 
 /**
  * Clinician Approval Component
@@ -107,8 +125,19 @@ export const ClinicianApproval = ({
   const [generationError, setGenerationError] = useState("");
   
   const { toast } = useToast();
+  const { t } = useAppLanguage();
   const { saveApproval, updateCase, saveAIAnalysis } = useCasePersistence();
   const navigate = useNavigate();
+  const selectedSectionIds = normalizeSelectedSectionIds(patientData?.selectedSectionIds);
+  const selectedSectionSet = new Set(selectedSectionIds);
+
+  const getSectionById = (allSections: ParsedSection[], sectionId: SectionId): ParsedSection | undefined => {
+    const withIds = withSectionIds(allSections);
+    return withIds.find(section => section.id === sectionId);
+  };
+
+  const visibleSections = filterSectionsBySelection(sections, selectedSectionIds);
+  const visibleConfigs = SECTION_CONFIGS.filter(config => selectedSectionSet.has(config.id));
 
   /**
    * Initialize sections from props or trigger generation
@@ -170,8 +199,8 @@ export const ClinicianApproval = ({
       await updateCase(caseId, { status: 'processing' });
 
       toast({
-        title: "Document Generated",
-        description: "Patient-friendly document is ready for review.",
+        title: t("Document Generated"),
+        description: t("Patient-friendly document is ready for review."),
       });
 
     } catch (err: any) {
@@ -190,7 +219,7 @@ export const ClinicianApproval = ({
       
       setGenerationError(errorMessage);
       toast({
-        title: "Generation Failed",
+        title: t("Generation Failed"),
         description: errorMessage,
         variant: "destructive",
       });
@@ -202,17 +231,28 @@ export const ClinicianApproval = ({
   /**
    * Updates a section's content after editing
    */
-  const handleSectionEdit = (index: number, newContent: string) => {
+  const handleSectionEdit = (sectionId: SectionId, newContent: string) => {
     const updated = [...sections];
-    updated[index].content = newContent;
+    const targetIndex = updated.findIndex((section, index) => {
+      const id = section.id ?? SECTION_IDS[index];
+      return id === sectionId;
+    });
+
+    if (targetIndex === -1) {
+      return;
+    }
+
+    updated[targetIndex].content = newContent;
     setSections(updated);
   };
 
   /**
    * Regenerates a single section using AI
    */
-  const handleRegenerateSection = async (index: number) => {
-    setRegeneratingIndex(index);
+  const handleRegenerateSection = async (sectionId: SectionId) => {
+    const sectionConfig = SECTION_CONFIG_BY_ID[sectionId];
+    const originalIndex = sectionConfig.originalIndex;
+    setRegeneratingIndex(originalIndex);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -222,9 +262,9 @@ export const ClinicianApproval = ({
 
       const { data, error } = await supabase.functions.invoke('regenerate-section', {
         body: {
-          sectionIndex: index,
-          sectionTitle: SECTION_CONFIGS[index].title,
-          currentContent: sections[index]?.content || "",
+          sectionIndex: originalIndex,
+          sectionTitle: sectionConfig.title,
+          currentContent: getSectionById(sections, sectionId)?.content || "",
           analysis: analysis,
           patientData: patientData,
           technicalNote: technicalNote,
@@ -238,21 +278,30 @@ export const ClinicianApproval = ({
       
       // Update section with regenerated content
       const updated = [...sections];
-      updated[index] = {
-        ...updated[index],
+      const targetIndex = updated.findIndex((section, index) => {
+        const id = section.id ?? SECTION_IDS[index];
+        return id === sectionId;
+      });
+
+      if (targetIndex === -1) {
+        throw new Error("Section not found");
+      }
+
+      updated[targetIndex] = {
+        ...updated[targetIndex],
         content: data.regeneratedContent
       };
       setSections(updated);
       
       toast({
-        title: "Section regenerated",
-        description: `"${SECTION_CONFIGS[index].title}" has been updated with AI-generated content`,
+        title: t("Section regenerated"),
+        description: t('"{title}" has been updated with AI-generated content', { title: sectionConfig.title }),
       });
     } catch (error) {
       console.error("Regeneration error:", error);
       toast({
-        title: "Regeneration failed",
-        description: "Could not regenerate section. Please try editing manually.",
+        title: t("Regeneration failed"),
+        description: t("Could not regenerate section. Please try editing manually."),
         variant: "destructive",
       });
     } finally {
@@ -269,15 +318,15 @@ export const ClinicianApproval = ({
   const handleApprove = async () => {
     if (!clinicianName.trim()) {
       toast({
-        title: "Clinician name required",
-        description: "Please enter your name before approving",
+        title: t("Clinician name required"),
+        description: t("Please enter your name before approving"),
         variant: "destructive",
       });
       return;
     }
 
     try {
-      const finalText = reconstructDraft(sections);
+      const finalText = reconstructDraft(visibleSections);
       
       // Save approval to database
       await saveApproval(caseId, finalText, clinicianName);
@@ -287,19 +336,21 @@ export const ClinicianApproval = ({
       const language = patientData?.language || 'english';
       const token = await publishDocument(
         caseId,
-        sections,
+        visibleSections,
         clinicianName,
         language,
+        selectedSectionIds,
         undefined // hospitalName
       );
 
       // Call onApprove to update parent state
-      onApprove(finalText, clinicianName, sections);
+      onApprove(finalText, clinicianName, visibleSections);
 
       // Navigate to PrintPreview (output step) with published URL
       navigate(`/app/print-preview/${caseId}`, {
         state: {
-          sections,
+          sections: visibleSections,
+          selectedSectionIds,
           clinicianName,
           language,
           hospitalName: undefined,
@@ -309,8 +360,8 @@ export const ClinicianApproval = ({
     } catch (error) {
       console.error("Error approving document:", error);
       toast({
-        title: "Approval failed",
-        description: "Could not save approval. Please try again.",
+        title: t("Approval failed"),
+        description: t("Could not save approval. Please try again."),
         variant: "destructive",
       });
     }
@@ -324,17 +375,17 @@ export const ClinicianApproval = ({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              Generating Patient Document
+              {t("Generating Patient Document")}
             </CardTitle>
             <CardDescription>
-              AI is creating a personalized, patient-friendly explanation based on your technical note...
+              {t("AI is creating a personalized, patient-friendly explanation based on your technical note...")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-12">
               <div className="text-center space-y-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-                <p className="text-muted-foreground">This may take a moment...</p>
+                <p className="text-muted-foreground">{t("This may take a moment...")}</p>
               </div>
             </div>
           </CardContent>
@@ -349,17 +400,17 @@ export const ClinicianApproval = ({
       <div className="max-w-5xl mx-auto space-y-6">
         <Card className="shadow-card border-destructive">
           <CardHeader>
-            <CardTitle className="text-destructive">Generation Failed</CardTitle>
+            <CardTitle className="text-destructive">{t("Generation Failed")}</CardTitle>
             <CardDescription>{generationError}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4">
               <Button onClick={onBack} variant="outline">
                 <ChevronLeft className="mr-2 h-4 w-4" />
-                Back to Profile
+                {t("Back to Profile")}
               </Button>
               <Button onClick={handleStartGeneration}>
-                Try Again
+                {t("Try Again")}
               </Button>
             </div>
           </CardContent>
@@ -374,13 +425,13 @@ export const ClinicianApproval = ({
       <div className="max-w-5xl mx-auto space-y-6">
         <Card className="shadow-card">
           <CardHeader>
-            <CardTitle>No Content Available</CardTitle>
-            <CardDescription>Unable to load document sections.</CardDescription>
+            <CardTitle>{t("No Content Available")}</CardTitle>
+            <CardDescription>{t("Unable to load document sections.")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={onBack} variant="outline">
               <ChevronLeft className="mr-2 h-4 w-4" />
-              Go Back
+              {t("Go Back")}
             </Button>
           </CardContent>
         </Card>
@@ -396,53 +447,55 @@ export const ClinicianApproval = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileCheck className="w-6 h-6 text-primary" />
-            Review & Edit Patient Communication
+            {t("Review & Edit Patient Communication")}
           </CardTitle>
           <CardDescription>
-            Review each section below, make any necessary edits, and approve the final document
+            {t("Review each section below, make any necessary edits, and approve the final document")}
           </CardDescription>
         </CardHeader>
       </Card>
 
       {/* Section Grid (first 6 sections) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {SECTION_CONFIGS.slice(0, 6).map((config, index) => (
+        {visibleConfigs.filter(config => config.id !== 'contacts').map((config) => (
           <SectionBox
-            key={index}
+            key={config.id}
             icon={config.icon}
-            title={config.title}
-            content={sections[index]?.content || ""}
-            onEdit={(newContent) => handleSectionEdit(index, newContent)}
-            onRegenerate={() => handleRegenerateSection(index)}
-            isRegenerating={regeneratingIndex === index}
+            title={t(config.title)}
+            content={getSectionById(sections, config.id)?.content || ""}
+            onEdit={(newContent) => handleSectionEdit(config.id, newContent)}
+            onRegenerate={() => handleRegenerateSection(config.id)}
+            isRegenerating={regeneratingIndex === config.originalIndex}
             themeColor={config.themeColor}
           />
         ))}
       </div>
 
       {/* Contacts Section (full width) */}
-      <SectionBox
-        icon={SECTION_CONFIGS[6].icon}
-        title={SECTION_CONFIGS[6].title}
-        content={sections[6]?.content || ""}
-        onEdit={(newContent) => handleSectionEdit(6, newContent)}
-        onRegenerate={() => handleRegenerateSection(6)}
-        isRegenerating={regeneratingIndex === 6}
-        themeColor={SECTION_CONFIGS[6].themeColor}
-      />
+      {selectedSectionSet.has('contacts') && (
+          <SectionBox
+            icon={SECTION_CONFIG_BY_ID.contacts.icon}
+            title={t(SECTION_CONFIG_BY_ID.contacts.title)}
+            content={getSectionById(sections, 'contacts')?.content || ""}
+            onEdit={(newContent) => handleSectionEdit('contacts', newContent)}
+            onRegenerate={() => handleRegenerateSection('contacts')}
+            isRegenerating={regeneratingIndex === SECTION_CONFIG_BY_ID.contacts.originalIndex}
+            themeColor={SECTION_CONFIG_BY_ID.contacts.themeColor}
+          />
+      )}
 
       {/* Clinical Safety Reminders */}
       <Card className="border-amber-200 bg-amber-50">
         <CardHeader>
-          <CardTitle className="text-lg text-amber-900">Clinical Safety Reminders</CardTitle>
+          <CardTitle className="text-lg text-amber-900">{t("Clinical Safety Reminders")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="text-sm text-amber-800 space-y-1 list-disc list-inside">
-            <li>Verify all medication names, doses, and instructions are accurate</li>
-            <li>Ensure emergency contact information is complete and correct</li>
-            <li>Confirm warning signs are clear and specific to the patient's condition</li>
-            <li>Check that lifestyle advice is appropriate for the patient's specific situation</li>
-            <li>Ensure language is appropriate for the patient's health literacy level</li>
+            <li>{t("Verify all medication names, doses, and instructions are accurate")}</li>
+            <li>{t("Ensure emergency contact information is complete and correct")}</li>
+            <li>{t("Confirm warning signs are clear and specific to the patient's condition")}</li>
+            <li>{t("Check that lifestyle advice is appropriate for the patient's specific situation")}</li>
+            <li>{t("Ensure language is appropriate for the patient's health literacy level")}</li>
           </ul>
         </CardContent>
       </Card>
@@ -450,16 +503,16 @@ export const ClinicianApproval = ({
       {/* Approving Clinician */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Approving Clinician</CardTitle>
+          <CardTitle className="text-lg">{t("Approving Clinician")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="clinician-name">Approving Clinician Name *</Label>
+            <Label htmlFor="clinician-name">{t("Approving Clinician Name *")}</Label>
             <Input
               id="clinician-name"
               value={clinicianName}
               onChange={(e) => setClinicianName(e.target.value)}
-              placeholder="Dr. Jane Smith"
+              placeholder={t("Enter clinician name")}
             />
           </div>
         </CardContent>
@@ -468,24 +521,24 @@ export const ClinicianApproval = ({
       {/* Action Buttons */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Actions</CardTitle>
+          <CardTitle className="text-lg">{t("Actions")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button onClick={onBack} variant="outline" className="w-full sm:flex-1">
               <ChevronLeft className="w-4 h-4 mr-1" />
-              Patient Profile
+              {t("Patient Profile")}
             </Button>
             <Button onClick={handleApprove} className="w-full sm:flex-1" disabled={isPublishing}>
               {isPublishing ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  Publishing...
+                  {t("Publishing...")}
                 </>
               ) : (
                 <>
                   <Share2 className="w-4 h-4 mr-1" />
-                  Print & Publish for Patient
+                  {t("Print & Publish for Patient")}
                 </>
               )}
             </Button>

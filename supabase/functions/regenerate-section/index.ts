@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getRegenerateSectionGuideline } from "../_shared/sectionGuidelines.ts";
 
-// Prompt definitions (duplicated from generate-patient-draft for edge function isolation)
+// Edge-local prompt definitions used by the regenerate-section flow
 const SYSTEM_PROMPT = `You are an expert medical communicator specializing in translating complex clinical information into clear, empathetic, patient-friendly explanations.
 
 YOUR ROLE:
@@ -176,7 +177,7 @@ serve(async (req) => {
     try {
       requireAuth(req);
       console.log("Authenticated request received");
-    } catch (authError) {
+    } catch (_authError) {
       return new Response(
         JSON.stringify({
           error: "Unauthorized",
@@ -250,17 +251,6 @@ EXTRACTED MEDICAL INFORMATION:
 - Emergency Contacts: ${analysis.emergencyContacts?.join(', ') || 'None'}
 ` : 'No structured analysis available.';
 
-    // Section-specific guidelines
-    const sectionGuidelines = {
-      0: "Explain the diagnosis in plain language with relevant test results",
-      1: "Provide practical daily instructions for diet, activity, and monitoring",
-      2: "Break down the timeline into phases with expected improvements",
-      3: "Describe long-term lifestyle impact with realistic but hopeful perspective",
-      4: "List each medication with name, dosage, timing, purpose, and importance",
-      5: "List emergency symptoms requiring immediate action",
-      6: "Provide cardiologist/physician contact, nurse hotline, pharmacy, and emergency numbers"
-    };
-
     // Build focused prompt for this specific section
     const userPrompt = `${SYSTEM_PROMPT}
 
@@ -282,15 +272,16 @@ ${getPersonalizationInstructions(profile)}
 ${SAFETY_RULES}
 
 SECTION FOCUS: "${sectionTitle}"
-GUIDELINES: ${sectionGuidelines[sectionIndex as keyof typeof sectionGuidelines] || 'Generate appropriate content for this section'}
+GUIDELINES: ${getRegenerateSectionGuideline(sectionIndex)}
 
 CRITICAL INSTRUCTIONS:
 - Generate content ONLY for the section: "${sectionTitle}"
 - Do NOT include section separators, dividers, or the section title
 - Return ONLY the section body text (no title), using readable markdown structure:
-  - Bullet points where useful
+  - Use Bullet points where useful
   - **Bold** for key medical terms or actions
   - Short lines/paragraphs for readability
+  - Use either "- text" or "1. text" per line; never mix list markers on the same line (forbidden: "- 1. text")
 - Use all medical information to answer this specific question
 - Follow all personalization requirements for this patient
 - Write in ${profile.language}

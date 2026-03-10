@@ -8,6 +8,7 @@ import { ChevronLeft, Loader2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ParsedSection } from "@/utils/draftParser";
+import { useAppLanguage } from "@/lib/i18n";
 
 interface FeedbackProps {
   caseId: string;
@@ -37,6 +38,7 @@ export const Feedback = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [skipWarningShown, setSkipWarningShown] = useState(false);
   const { toast } = useToast();
+  const { t } = useAppLanguage();
 
   // Reset skip warning when user adds content
   useEffect(() => {
@@ -63,8 +65,8 @@ export const Feedback = ({
     if (formIsEmpty) {
       if (!skipWarningShown) {
         toast({
-          title: "Skip feedback?",
-          description: "Click again to start a new patient without feedback.",
+          title: t("Skip feedback?"),
+          description: t("Click again to start a new patient without feedback."),
         });
         setSkipWarningShown(true);
         return;
@@ -90,8 +92,8 @@ export const Feedback = ({
       if (error) throw error;
 
       toast({
-        title: "Feedback submitted",
-        description: "Thank you! Starting new patient...",
+        title: t("Feedback submitted"),
+        description: t("Thank you! Starting new patient..."),
         duration: 3000
       });
       
@@ -103,8 +105,8 @@ export const Feedback = ({
     } catch (err) {
       console.error("Feedback submission error:", err);
       toast({
-        title: "Submission failed",
-        description: "Could not save feedback. Please try again.",
+        title: t("Submission failed"),
+        description: t("Could not save feedback. Please try again."),
         variant: "destructive"
       });
       setIsSubmitting(false);
@@ -116,9 +118,9 @@ export const Feedback = ({
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Feedback</CardTitle>
+          <CardTitle>{t("Feedback")}</CardTitle>
           <CardDescription>
-            Based on your experience, which feature do you consider most useful for patients?
+            {t("Based on your experience, which feature do you consider most useful for patients?")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -135,7 +137,7 @@ export const Feedback = ({
                   htmlFor={option}
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                 >
-                  {option}
+                  {t(option)}
                 </Label>
               </div>
             ))}
@@ -143,12 +145,12 @@ export const Feedback = ({
 
           {/* Free Text Field */}
           <div className="space-y-2">
-            <Label htmlFor="comments">Additional Comments/Suggestions</Label>
+            <Label htmlFor="comments">{t("Additional Comments/Suggestions")}</Label>
             <Textarea
               id="comments"
               value={additionalComments}
               onChange={(e) => setAdditionalComments(e.target.value)}
-              placeholder="Share any additional feedback about the generated document..."
+              placeholder={t("Share any additional feedback about the generated document...")}
               rows={4}
             />
           </div>
@@ -161,7 +163,7 @@ export const Feedback = ({
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button onClick={onBack} variant="ghost" className="w-full sm:flex-1">
               <ChevronLeft className="w-4 h-4 mr-1" />
-              Back to Document
+              {t("Back to Document")}
             </Button>
             <Button 
               onClick={handleSubmitAndNewPatient} 
@@ -173,7 +175,7 @@ export const Feedback = ({
               ) : (
                 <UserPlus className="w-4 h-4 mr-1" />
               )}
-              Submit & New Patient
+              {t("Submit & New Patient")}
             </Button>
           </div>
         </CardContent>

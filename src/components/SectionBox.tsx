@@ -19,6 +19,7 @@ import { Edit2, Check, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { formatPlainTextAsMarkdown } from "@/utils/markdownFormatting";
+import { useAppLanguage } from "@/lib/i18n";
 
 /**
  * Props for the SectionBox component
@@ -70,6 +71,7 @@ export const SectionBox = ({
   onRegenerate,
   isRegenerating = false,
 }: SectionBoxProps) => {
+  const { t } = useAppLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
   const displayContent = formatPlainTextAsMarkdown(content);
@@ -115,11 +117,11 @@ export const SectionBox = ({
             {!isEmpty ? (
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 <Check className="w-3 h-3 mr-1" />
-                Complete
+                {t("Complete")}
               </Badge>
             ) : (
               <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                Empty
+                {t("Empty")}
               </Badge>
             )}
           </div>
@@ -135,16 +137,16 @@ export const SectionBox = ({
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
               className="min-h-[200px] font-sans"
-              placeholder="Enter content for this section..."
+              placeholder={t("Enter content for this section...")}
             />
             <div className="flex gap-2">
               <Button onClick={handleSave} size="sm" className="flex-1">
                 <Check className="w-4 h-4 mr-1" />
-                Save Changes
+                {t("Save Changes")}
               </Button>
               <Button onClick={handleCancel} size="sm" variant="outline">
                 <X className="w-4 h-4 mr-1" />
-                Cancel
+                {t("Cancel")}
               </Button>
             </div>
           </>
@@ -153,7 +155,7 @@ export const SectionBox = ({
           <>
             {isEmpty ? (
               <p className="text-muted-foreground italic text-sm py-4">
-                No content generated for this section. Click Edit to add information.
+                {t("No content generated for this section. Click Edit to add information.")}
               </p>
             ) : (
               <div className="prose prose-sm max-w-none text-foreground [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_p]:my-2 [&_strong]:font-semibold [&_h1]:text-base [&_h2]:text-base">
@@ -176,7 +178,7 @@ export const SectionBox = ({
                 className="flex-1"
               >
                 <Edit2 className="w-4 h-4 mr-1" />
-                Edit Section
+                {t("Edit Section")}
               </Button>
               
               {onRegenerate && (
@@ -188,7 +190,7 @@ export const SectionBox = ({
                   className="flex-1"
                 >
                   <Sparkles className="w-4 h-4 mr-1" />
-                  {isRegenerating ? "Regenerating..." : "Regenerate with AI"}
+                  {isRegenerating ? t("Regenerating...") : t("Regenerate with AI")}
                 </Button>
               )}
             </div>

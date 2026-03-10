@@ -14,6 +14,7 @@ export interface PublishedDocument {
   case_id: string;
   access_token: string;
   sections_data: any;
+  selected_section_ids?: string[];
   patient_language: string;
   clinician_name: string;
   hospital_name?: string;
@@ -43,9 +44,10 @@ export function usePublishedDocument() {
    */
   const publishDocument = async (
     caseId: string,
-    sections: { title: string; content: string }[],
+    sections: { id?: string; title: string; content: string }[],
     clinicianName: string,
     language: string,
+    selectedSectionIds?: string[],
     hospitalName?: string
   ): Promise<string | null> => {
     setIsPublishing(true);
@@ -63,6 +65,7 @@ export function usePublishedDocument() {
           created_by: user.id,
           access_token: accessToken,
           sections_data: sections,
+          selected_section_ids: selectedSectionIds,
           patient_language: language,
           clinician_name: clinicianName,
           hospital_name: hospitalName

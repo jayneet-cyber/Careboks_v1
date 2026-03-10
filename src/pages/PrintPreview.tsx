@@ -12,9 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PrintableDocument } from '@/components/print/PrintableDocument';
 import { usePublishedDocument } from '@/hooks/usePublishedDocument';
 import { ChevronLeft, Printer, Copy, Check, MessageSquare } from 'lucide-react';
+import { useAppLanguage } from '@/lib/i18n';
 
 interface LocationState {
-  sections: { title: string; content: string }[];
+  sections: { id?: string; title: string; content: string }[];
+  selectedSectionIds?: string[];
   clinicianName: string;
   language: string;
   hospitalName?: string;
@@ -35,6 +37,7 @@ export default function PrintPreview() {
   // Initialize from state if publishedUrl was passed (already published during approval)
   const [publishedUrl, setPublishedUrl] = useState<string | null>(state?.publishedUrl || null);
   const [copied, setCopied] = useState(false);
+  const { t } = useAppLanguage();
   
   const { 
     getDocumentForCase,
@@ -94,15 +97,15 @@ export default function PrintPreview() {
       <div className="min-h-screen bg-background p-8">
         <Card className="max-w-md mx-auto">
           <CardHeader>
-            <CardTitle>No Document Data</CardTitle>
+            <CardTitle>{t("No Document Data")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              Please go through the approval flow to access print preview.
+              {t("Please go through the approval flow to access print preview.")}
             </p>
             <Button onClick={() => navigate('/app')}>
               <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to App
+              {t("Back to App")}
             </Button>
           </CardContent>
         </Card>
@@ -157,7 +160,7 @@ export default function PrintPreview() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt('Copy patient link:', publishedUrl);
+      window.prompt(t('Copy patient link:'), publishedUrl);
     }
   };
 
@@ -199,13 +202,13 @@ export default function PrintPreview() {
               className="w-full sm:w-auto"
             >
               <ChevronLeft className="mr-2 h-4 w-4" />
-              Back
+              {t("Back")}
             </Button>
             
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
               <Button onClick={handlePrint} variant="outline" className="w-full sm:w-auto">
                 <Printer className="mr-2 h-4 w-4" />
-                Print for Patient
+                {t("Print for Patient")}
               </Button>
               
               {publishedUrl && (
@@ -219,13 +222,13 @@ export default function PrintPreview() {
                   ) : (
                     <Copy className="mr-2 h-4 w-4" />
                   )}
-                  {copied ? 'Copied!' : 'Copy Link'}
+                  {copied ? t("Copied!") : t("Copy Link")}
                 </Button>
               )}
 
               <Button onClick={handleContinueToFeedback} className="w-full sm:w-auto">
                 <MessageSquare className="mr-2 h-4 w-4" />
-                Continue to Feedback
+                {t("Continue to Feedback")}
               </Button>
             </div>
           </div>
@@ -237,12 +240,12 @@ export default function PrintPreview() {
         <div className="no-print max-w-[210mm] mx-auto p-4">
           <Card className="bg-green-50 border-green-200">
             <CardContent className="p-4">
-              <h3 className="font-medium text-green-900">Document Published</h3>
+              <h3 className="font-medium text-green-900">{t("Document Published")}</h3>
               <p className="text-sm text-green-700">
-                The QR code on the printed document will allow patients to access their care document online.
+                {t("The QR code on the printed document will allow patients to access their care document online.")}
               </p>
               <div className="mt-3 rounded-md border border-green-200 bg-white p-2">
-                <p className="text-xs font-medium text-green-900 mb-1">Patient Link</p>
+                <p className="text-xs font-medium text-green-900 mb-1">{t("Patient Link")}</p>
                 <a
                   href={publishedUrl}
                   target="_blank"

@@ -12,10 +12,11 @@ import { PrintMedications } from './PrintMedications';
 import { PrintWarnings } from './PrintWarnings';
 import { PrintContacts } from './PrintContacts';
 import { PrintFooter } from './PrintFooter';
-import carebloksLogo from '@/assets/careboks-logo.png';
 import '@/styles/print.css';
+import { SECTION_IDS, type SectionId } from '@/lib/documentSections';
 
 export interface DocumentSection {
+  id?: string;
   title: string;
   content: string;
 }
@@ -53,16 +54,9 @@ export const PrintableDocument = ({
   documentUrl,
   showQrCode = true
 }: PrintableDocumentProps) => {
-  // Section mapping based on structuredDocumentParser order:
-  // 0: What do I have
-  // 1: How should I live
-  // 2: Timeline (6 months)
-  // 3: Life impact
-  // 4: Medications
-  // 5: Warnings
-  // 6: Contacts
-  
+  const sectionMap = mapSectionsById(sections);
   const sectionTitles = getSectionTitles(language);
+  const orderedIds = SECTION_IDS.filter(sectionId => sectionMap[sectionId]);
   
   return (
     <div className="print-container">
@@ -73,44 +67,51 @@ export const PrintableDocument = ({
           hospitalName={hospitalName}
         />
         
-        {/* All 7 sections in one continuous grid */}
+        {/* Selected sections in one continuous grid */}
         <div className="print-content-grid">
-          <PrintSection
-            title={sectionTitles[0]}
-            content={sections[0]?.content || ''}
-            variant="teal"
-            icon={<span>❤️</span>}
-          />
-          <PrintSection
-            title={sectionTitles[1]}
-            content={sections[1]?.content || ''}
-            variant="neutral"
-            icon={<span>🏃</span>}
-          />
-          <PrintSection
-            title={sectionTitles[2]}
-            content={sections[2]?.content || ''}
-            variant="teal"
-            icon={<span>📅</span>}
-          />
-          <PrintSection
-            title={sectionTitles[3]}
-            content={sections[3]?.content || ''}
-            variant="teal"
-            icon={<span>✨</span>}
-          />
-          <PrintMedications 
-            content={sections[4]?.content || ''} 
-            language={language}
-          />
-          <PrintWarnings 
-            content={sections[5]?.content || ''} 
-            language={language}
-          />
-          <PrintContacts 
-            content={sections[6]?.content || ''} 
-            language={language}
-          />
+          {orderedIds.map(sectionId => {
+            const content = sectionMap[sectionId]?.content || '';
+
+            if (sectionId === 'medications') {
+              return (
+                <PrintMedications
+                  key={sectionId}
+                  content={content}
+                  language={language}
+                />
+              );
+            }
+
+            if (sectionId === 'warnings') {
+              return (
+                <PrintWarnings
+                  key={sectionId}
+                  content={content}
+                  language={language}
+                />
+              );
+            }
+
+            if (sectionId === 'contacts') {
+              return (
+                <PrintContacts
+                  key={sectionId}
+                  content={content}
+                  language={language}
+                />
+              );
+            }
+
+            return (
+              <PrintSection
+                key={sectionId}
+                title={sectionTitles[sectionId]}
+                content={content}
+                variant={sectionId === 'how_to_live' ? 'neutral' : 'teal'}
+                icon={<span>{SECTION_ICONS[sectionId]}</span>}
+              />
+            );
+          })}
         </div>
         
         {/* Footer with signature and QR code */}
@@ -128,38 +129,74 @@ export const PrintableDocument = ({
 /**
  * Returns localized section titles based on language
  */
-function getSectionTitles(language: string): string[] {
+function getSectionTitles(language: string): Record<SectionId, string> {
   const normalizedLang = language?.toLowerCase() || 'english';
   
-  const titles: Record<string, string[]> = {
-    estonian: [
-      "MIS MUL ON",
-      "KUIDAS PEAKSIN EDASI ELAMA",
-      "KUIDAS JÄRGMISED 6 KUUD VÄLJA NÄEVAD",
-      "MIDA SEE TÄHENDAB MINU ELULE",
-      "MINU RAVIMID",
-      "HOIATAVAD MÄRGID",
-      "MINU KONTAKTID"
-    ],
-    russian: [
-      "ЧТО У МЕНЯ ЕСТЬ",
-      "КАК МНЕ ЖИТЬ ДАЛЬШЕ",
-      "КАК БУДУТ ВЫГЛЯДЕТЬ СЛЕДУЮЩИЕ 6 МЕСЯЦЕВ",
-      "ЧТО ЭТО ЗНАЧИТ ДЛЯ МОЕЙ ЖИЗНИ",
-      "МОИ ЛЕКАРСТВА",
-      "ПРЕДУПРЕЖДАЮЩИЕ ПРИЗНАКИ",
-      "МОИ КОНТАКТЫ"
-    ],
-    english: [
-      "WHAT DO I HAVE",
-      "HOW SHOULD I LIVE NEXT",
-      "HOW THE NEXT 6 MONTHS WILL LOOK",
-      "WHAT DOES IT MEAN FOR MY LIFE",
-      "MY MEDICATIONS",
-      "WARNING SIGNS",
-      "MY CONTACTS"
-    ]
+  const titles: Record<string, Record<SectionId, string>> = {
+    estonian: {
+      what_i_have: "MIS MUL ON",
+      how_to_live: "KUIDAS PEAKSIN EDASI ELAMA",
+      timeline: "KUIDAS JÄRGMISED 6 KUUD VÄLJA NÄEVAD",
+      life_impact: "MIDA SEE TÄHENDAB MINU ELULE",
+      medications: "MINU RAVIMID",
+      warnings: "HOIATAVAD MÄRGID",
+      contacts: "MINU KONTAKTID"
+    },
+    russian: {
+      what_i_have: "ЧТО У МЕНЯ ЕСТЬ",
+      how_to_live: "КАК МНЕ ЖИТЬ ДАЛЬШЕ",
+      timeline: "КАК БУДУТ ВЫГЛЯДЕТЬ СЛЕДУЮЩИЕ 6 МЕСЯЦЕВ",
+      life_impact: "ЧТО ЭТО ЗНАЧИТ ДЛЯ МОЕЙ ЖИЗНИ",
+      medications: "МОИ ЛЕКАРСТВА",
+      warnings: "ПРЕДУПРЕЖДАЮЩИЕ ПРИЗНАКИ",
+      contacts: "МОИ КОНТАКТЫ"
+    },
+    english: {
+      what_i_have: "WHAT DO I HAVE",
+      how_to_live: "HOW SHOULD I LIVE NEXT",
+      timeline: "HOW THE NEXT 6 MONTHS WILL LOOK",
+      life_impact: "WHAT DOES IT MEAN FOR MY LIFE",
+      medications: "MY MEDICATIONS",
+      warnings: "WARNING SIGNS",
+      contacts: "MY CONTACTS"
+    }
   };
   
   return titles[normalizedLang] || titles.english;
+}
+
+const SECTION_ICONS: Record<SectionId, string> = {
+  what_i_have: '❤️',
+  how_to_live: '🏃',
+  timeline: '📅',
+  life_impact: '✨',
+  medications: '💊',
+  warnings: '⚠️',
+  contacts: '📞'
+};
+
+function mapSectionsById(sections: DocumentSection[]): Partial<Record<SectionId, DocumentSection>> {
+  const hasExplicitIds = sections.some(section => typeof section.id === 'string' && SECTION_IDS.includes(section.id as SectionId));
+  const sectionMap: Partial<Record<SectionId, DocumentSection>> = {};
+
+  if (hasExplicitIds) {
+    for (const section of sections) {
+      if (section.id && SECTION_IDS.includes(section.id as SectionId)) {
+        sectionMap[section.id as SectionId] = section;
+      }
+    }
+
+    return sectionMap;
+  }
+
+  SECTION_IDS.forEach((sectionId, index) => {
+    if (sections[index]) {
+      sectionMap[sectionId] = {
+        ...sections[index],
+        id: sectionId
+      };
+    }
+  });
+
+  return sectionMap;
 }

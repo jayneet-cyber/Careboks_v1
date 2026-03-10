@@ -10,6 +10,8 @@
  * @module utils/structuredDocumentParser
  */
 
+import { SECTION_IDS, type SectionId } from "@/lib/documentSections";
+
 /**
  * Structured document output from AI generation
  * Each section contains the personalized patient communication
@@ -35,6 +37,8 @@ export interface StructuredDocument {
  * Generic section structure for component rendering
  */
 export interface Section {
+  /** Stable section identifier */
+  id?: SectionId;
   /** Localized section title */
   title: string;
   /** Section content */
@@ -104,13 +108,13 @@ export const parseStructuredDocument = (
   const titles = SECTION_TITLES[normalizedLanguage] || SECTION_TITLES.english;
 
   return [
-    { title: titles[0], content: doc.section_1_what_i_have || '' },
-    { title: titles[1], content: doc.section_2_how_to_live || '' },
-    { title: titles[2], content: doc.section_3_timeline || '' },
-    { title: titles[3], content: doc.section_4_life_impact || '' },
-    { title: titles[4], content: doc.section_5_medications || '' },
-    { title: titles[5], content: doc.section_6_warnings || '' },
-    { title: titles[6], content: doc.section_7_contacts || '' }
+    { id: SECTION_IDS[0], title: titles[0], content: doc.section_1_what_i_have || '' },
+    { id: SECTION_IDS[1], title: titles[1], content: doc.section_2_how_to_live || '' },
+    { id: SECTION_IDS[2], title: titles[2], content: doc.section_3_timeline || '' },
+    { id: SECTION_IDS[3], title: titles[3], content: doc.section_4_life_impact || '' },
+    { id: SECTION_IDS[4], title: titles[4], content: doc.section_5_medications || '' },
+    { id: SECTION_IDS[5], title: titles[5], content: doc.section_6_warnings || '' },
+    { id: SECTION_IDS[6], title: titles[6], content: doc.section_7_contacts || '' }
   ];
 };
 

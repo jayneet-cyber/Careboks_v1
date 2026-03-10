@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { pdfToImageDataUrls } from "@/utils/pdfToImages";
 import { extractTextDirectly } from "@/utils/pdfTextExtraction";
 import { useCasePersistence } from "@/hooks/useCasePersistence";
+import { useAppLanguage } from "@/lib/i18n";
 
 /** Maximum number of documents that can be uploaded at once */
 const MAX_UPLOAD_FILES = 10;
@@ -75,6 +76,7 @@ const TechnicalNoteInput = ({
   
   const { toast } = useToast();
   const { createCase, updateCase } = useCasePersistence();
+  const { t } = useAppLanguage();
 
   const getFunctionAuthHeaders = async (): Promise<Record<string, string>> => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -99,8 +101,8 @@ const TechnicalNoteInput = ({
     // Validate upload limit
     if (uploadedFiles.length + files.length > MAX_UPLOAD_FILES) {
       toast({
-        title: "Too many files",
-        description: `You can upload a maximum of ${MAX_UPLOAD_FILES} documents.`,
+        title: t("Too many files"),
+        description: t("You can upload a maximum of {max} documents.", { max: MAX_UPLOAD_FILES }),
         variant: "destructive"
       });
       return;
@@ -111,8 +113,8 @@ const TechnicalNoteInput = ({
       const isValid = file.type === 'application/pdf' || file.type.startsWith('image/');
       if (!isValid) {
         toast({
-          title: "Unsupported file type",
-          description: `${file.name}: This file type cannot be processed. Please upload a PDF or image.`,
+          title: t("Unsupported file type"),
+          description: `${file.name}: ${t("This file type cannot be processed. Please upload a PDF or image.")}`,
           variant: "destructive"
         });
       }
@@ -124,8 +126,8 @@ const TechnicalNoteInput = ({
     setUploadedFiles(prev => [...prev, ...validFiles]);
     
     toast({
-      title: "Files uploaded",
-      description: `${validFiles.length} file(s) added. Click "Get Text from Documents" to extract text.`
+      title: t("Files uploaded"),
+      description: t("{count} file(s) added. Click \"Get Text from Documents\" to extract text.", { count: validFiles.length })
     });
   };
 
@@ -136,8 +138,8 @@ const TechnicalNoteInput = ({
   const handleExtractText = async () => {
     if (uploadedFiles.length === 0) {
       toast({
-        title: "No files uploaded",
-        description: "Please upload documents first.",
+        title: t("No files uploaded"),
+        description: t("Please upload documents first."),
         variant: "destructive"
       });
       return;
@@ -148,8 +150,8 @@ const TechnicalNoteInput = ({
     
     if (filesToProcess.length === 0) {
       toast({
-        title: "All files already extracted",
-        description: "All uploaded files have already been processed."
+        title: t("All files already extracted"),
+        description: t("All uploaded files have already been processed.")
       });
       return;
     }
@@ -187,14 +189,18 @@ const TechnicalNoteInput = ({
       setExtractedFileNames(newExtractedFiles);
       
       toast({
-        title: "Text extracted",
-        description: `Extracted text from ${filesToProcess.length} new file(s). Total: ${newExtractedFiles.size}/${uploadedFiles.length} files extracted.`
+        title: t("Text extracted"),
+        description: t("Extracted text from {count} new file(s). Total: {total}/{all} files extracted.", {
+          count: filesToProcess.length,
+          total: newExtractedFiles.size,
+          all: uploadedFiles.length,
+        })
       });
     } catch (error) {
       console.error('Error processing files:', error);
       toast({
-        title: "Processing error",
-        description: "We could not extract all text. Please review and make corrections.",
+        title: t("Processing error"),
+        description: t("We could not extract all text. Please review and make corrections."),
         variant: "destructive"
       });
     } finally {
@@ -231,8 +237,11 @@ const TechnicalNoteInput = ({
         
         if (error) {
           toast({
-            title: "Extraction failed",
-            description: `Could not extract text from ${file.name} (page ${pageIndex}).`,
+            title: t("Extraction failed"),
+            description: t("Could not extract text from {name} (page {page}).", {
+              name: file.name,
+              page: pageIndex,
+            }),
             variant: "destructive"
           });
           continue;
@@ -250,8 +259,8 @@ const TechnicalNoteInput = ({
     } catch (e) {
       console.error('PDF processing error:', e);
       toast({
-        title: "PDF processing error",
-        description: `We could not process ${file.name}. Please review and make corrections.`,
+        title: t("PDF processing error"),
+        description: t("We could not process {name}. Please review and make corrections.", { name: file.name }),
         variant: "destructive"
       });
     }
@@ -281,8 +290,8 @@ const TechnicalNoteInput = ({
     
     if (error) {
       toast({
-        title: "Extraction failed",
-        description: `Could not extract text from ${file.name}. Please review and make corrections manually.`,
+        title: t("Extraction failed"),
+        description: t("Could not extract text from {name}. Please review and make corrections manually.", { name: file.name }),
         variant: "destructive"
       });
       return;
@@ -326,8 +335,8 @@ const TechnicalNoteInput = ({
       
       if (error) {
         toast({
-          title: "Error",
-          description: error.message || "Failed to update case",
+          title: t("Error"),
+          description: error.message || t("Failed to update case"),
           variant: "destructive"
         });
         setIsProcessing(false);
@@ -335,8 +344,8 @@ const TechnicalNoteInput = ({
       }
       
       toast({
-        title: "Success",
-        description: "Case updated successfully"
+        title: t("Success"),
+        description: t("Case updated successfully")
       });
       onNext(note, caseId);
     } else {
@@ -344,8 +353,8 @@ const TechnicalNoteInput = ({
       
       if (error) {
         toast({
-          title: "Error",
-          description: error.message || "Failed to save case",
+          title: t("Error"),
+          description: error.message || t("Failed to save case"),
           variant: "destructive"
         });
         setIsProcessing(false);
@@ -354,8 +363,8 @@ const TechnicalNoteInput = ({
       
       if (data) {
         toast({
-          title: "Success",
-          description: "Case saved successfully"
+          title: t("Success"),
+          description: t("Case saved successfully")
         });
         onNext(note, data.id);
       }
@@ -374,21 +383,21 @@ const TechnicalNoteInput = ({
         <CardHeader>
           <div className="flex items-center space-x-2">
             <FileText className="h-5 w-5 text-primary" />
-            <CardTitle>Technical Clinical Documents</CardTitle>
+            <CardTitle>{t("Technical Clinical Documents")}</CardTitle>
           </div>
           <CardDescription>
-            Enter the technical clinical documents that will be transformed into patient-friendly communication.
+            {t("Enter the technical clinical documents that will be transformed into patient-friendly communication.")}
           </CardDescription>
         </CardHeader>
         
         <CardContent className="space-y-4">
           {/* Rich Text Editor */}
           <div className="space-y-2">
-            <Label htmlFor="technical-note">Clinical Notes</Label>
+            <Label htmlFor="technical-note">{t("Clinical Notes")}</Label>
             <RichTextEditor
               value={note}
               onChange={setNote}
-              placeholder="Enter technical clinical note here or upload documents below..."
+              placeholder={t("Enter technical clinical note here or upload documents below...")}
               disabled={isDisabled}
             />
           </div>
@@ -397,7 +406,11 @@ const TechnicalNoteInput = ({
           {uploadedFiles.length > 0 && (
             <div className="space-y-2">
               <Label>
-                Uploaded Documents ({uploadedFiles.length}/{MAX_UPLOAD_FILES}) - {extractedFileNames.size} extracted
+                {t("Uploaded Documents ({count}/{max}) - {extracted} extracted", {
+                  count: uploadedFiles.length,
+                  max: MAX_UPLOAD_FILES,
+                  extracted: extractedFileNames.size,
+                })}
               </Label>
               <div className="flex flex-wrap gap-2">
                 {uploadedFiles.map((file, index) => {
@@ -432,7 +445,7 @@ const TechnicalNoteInput = ({
           
           {/* Upload and Extract Controls */}
           <div className="space-y-2">
-            <Label htmlFor="file-upload">Upload PDF or Images (Max {MAX_UPLOAD_FILES})</Label>
+            <Label htmlFor="file-upload">{t("Upload PDF or Images (Max {max})", { max: MAX_UPLOAD_FILES })}</Label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 type="button"
@@ -442,7 +455,7 @@ const TechnicalNoteInput = ({
                 onClick={() => document.getElementById('file-upload')?.click()}
               >
                 <Upload className="h-4 w-4" />
-                <span>Upload Documents</span>
+                <span>{t("Upload Documents")}</span>
               </Button>
               
               <Button
@@ -455,12 +468,12 @@ const TechnicalNoteInput = ({
                 {isExtracting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Extracting text...</span>
+                    <span>{t("Extracting text...")}</span>
                   </>
                 ) : (
                   <>
                     <FileText className="h-4 w-4" />
-                    <span>Get Text from Documents</span>
+                    <span>{t("Get Text from Documents")}</span>
                   </>
                 )}
               </Button>
@@ -476,8 +489,8 @@ const TechnicalNoteInput = ({
             </div>
             <p className="text-xs text-muted-foreground">
               {uploadedFiles.length === 0
-                ? "Upload documents first, then click 'Get Text from Documents' to extract text."
-                : "Click 'Get Text from Documents' to extract text from uploaded files."}
+                ? t("Upload documents first, then click 'Get Text from Documents' to extract text.")
+                : t("Click 'Get Text from Documents' to extract text from uploaded files.")}
             </p>
           </div>
           
@@ -488,7 +501,7 @@ const TechnicalNoteInput = ({
               disabled={!hasContent || isDisabled}
               className="flex items-center space-x-2"
             >
-              <span>Continue to Patient Profile</span>
+              <span>{t("Continue to Patient Profile")}</span>
             </Button>
           </div>
         </CardContent>

@@ -62,7 +62,7 @@ const Landing = () => {
                 Careboks helps clinicians communicate complex medical information in a clear, structured, patient-appropriate format, reducing misunderstandings and improving confidence in the care journey.
               </p>
               <div className="flex gap-4 justify-center flex-wrap">
-                <Button size="lg" onClick={() => navigate("/auth")}>
+                    <Button size="lg" onClick={() => navigate("/auth?forceLogin=1")}>
                   Request Pilot
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -322,7 +322,7 @@ const Landing = () => {
             We are currently collaborating with clinical teams to refine Carebox through real-world use.
             Join our pilot program to help shape the standard of clear patient communication.
           </p>
-          <Button size="lg" onClick={() => navigate("/auth")}>
+            <Button size="lg" onClick={() => navigate("/auth?forceLogin=1")}>
             Request Pilot Participation
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>

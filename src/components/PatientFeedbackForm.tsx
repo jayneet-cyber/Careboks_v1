@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { translatePatient } from "@/lib/patientI18n";
 
 const STORAGE_KEY = 'patientFeedbackSubmitted';
 
@@ -34,6 +35,8 @@ interface PatientFeedbackFormProps {
   publishedDocumentId: string;
   /** Callback when feedback is successfully submitted and confirmation dismissed */
   onSubmitComplete?: () => void;
+  /** Language of the patient document */
+  language?: string;
 }
 
 /**
@@ -67,6 +70,7 @@ const PATIENT_FEEDBACK_OPTIONS = [
 export const PatientFeedbackForm = ({
   caseId,
   publishedDocumentId,
+  language = "english",
   onSubmitComplete
 }: PatientFeedbackFormProps) => {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -117,8 +121,8 @@ export const PatientFeedbackForm = ({
   const handleSubmit = async () => {
     if (selectedOptions.length === 0 && !additionalComments.trim()) {
       toast({
-        title: "Please provide feedback",
-        description: "Select at least one option or add a comment.",
+        title: translatePatient(language, "Please provide feedback"),
+        description: translatePatient(language, "Select at least one option or add a comment."),
         variant: "warning"
       });
       return;
@@ -146,15 +150,15 @@ export const PatientFeedbackForm = ({
       }
 
       toast({
-        title: "Thank you for your feedback!",
-        description: "Your response helps us improve."
+        title: translatePatient(language, "Thank you for your feedback!"),
+        description: translatePatient(language, "Your response helps us improve.")
       });
       setHasSubmitted(true);
     } catch (err) {
       console.error("Patient feedback submission error:", err);
       toast({
-        title: "Could not submit feedback",
-        description: "Please try again later.",
+        title: translatePatient(language, "Could not submit feedback"),
+        description: translatePatient(language, "Please try again later."),
         variant: "destructive"
       });
     } finally {
@@ -177,10 +181,10 @@ export const PatientFeedbackForm = ({
         <CardContent className="pt-6 text-center">
           <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-4" />
           <h3 className="font-semibold text-lg">
-            Thank you for your feedback!
+            {translatePatient(language, "Thank you for your feedback!")}
           </h3>
           <p className="text-muted-foreground mt-2">
-            Your response helps us improve patient care.
+            {translatePatient(language, "Your response helps us improve patient care.")}
           </p>
         </CardContent>
       </Card>
@@ -190,9 +194,9 @@ export const PatientFeedbackForm = ({
   return (
     <Card className="mt-8">
       <CardHeader>
-        <CardTitle>How was this document?</CardTitle>
+        <CardTitle>{translatePatient(language, "How was this document?")}</CardTitle>
         <CardDescription>
-          Your feedback helps us improve the information we provide to patients.
+          {translatePatient(language, "Your feedback helps us improve the information we provide to patients.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -209,7 +213,7 @@ export const PatientFeedbackForm = ({
                 htmlFor={`patient-${option}`}
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
               >
-                {option}
+                  {translatePatient(language, option)}
               </Label>
             </div>
           ))}
@@ -217,12 +221,12 @@ export const PatientFeedbackForm = ({
 
         {/* Free Text Field */}
         <div className="space-y-2">
-          <Label htmlFor="patient-comments">Additional comments (optional)</Label>
+          <Label htmlFor="patient-comments">{translatePatient(language, "Additional comments (optional)")}</Label>
           <Textarea
             id="patient-comments"
             value={additionalComments}
             onChange={(e) => setAdditionalComments(e.target.value)}
-            placeholder="Share any additional feedback about this document..."
+            placeholder={translatePatient(language, "Share any additional feedback about this document...")}
             rows={3}
           />
         </div>
@@ -236,10 +240,10 @@ export const PatientFeedbackForm = ({
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Submitting...
+              {translatePatient(language, "Submitting...")}
             </>
           ) : (
-            "Submit Feedback"
+            translatePatient(language, "Submit Feedback")
           )}
         </Button>
       </CardContent>

@@ -11,6 +11,7 @@ import { LogOut, User, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import careboksLogo from "@/assets/careboks-logo.png";
+import { useAppLanguage } from "@/lib/i18n";
 
 /**
  * Props for the MedicalHeader component
@@ -53,6 +54,7 @@ const MedicalHeader = ({
   onLogoClick,
   caseId
 }: MedicalHeaderProps) => {
+  const { t } = useAppLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -97,7 +99,7 @@ const MedicalHeader = ({
                   {/* Step Progress - Right side */}
                   <div className="text-right">
                     <div className="text-xs md:text-sm font-medium text-foreground">
-                      Step {currentStep} of {totalSteps}
+                      {t("Step {current} of {total}", { current: currentStep, total: totalSteps })}
                     </div>
                     <div className="w-24 md:w-32 h-2 bg-muted rounded-full mt-1">
                       <div
@@ -115,7 +117,7 @@ const MedicalHeader = ({
                 size="sm"
                 onClick={handleAccountToggle}
                 className="text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px]"
-                aria-label={isAccountPage ? "Go to home" : "Go to account"}
+                aria-label={isAccountPage ? t("Go to home") : t("Go to account")}
               >
                 {isAccountPage ? (
                   <Home className="h-4 w-4" />
@@ -130,7 +132,7 @@ const MedicalHeader = ({
                 size="sm"
                 onClick={onLogout}
                 className="text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px]"
-                aria-label="Logout"
+                aria-label={t("Logout")}
               >
                 <LogOut className="h-4 w-4" />
               </Button>

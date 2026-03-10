@@ -16,10 +16,14 @@
  * @module utils/draftParser
  */
 
+import { SECTION_IDS, type SectionId } from "@/lib/documentSections";
+
 /**
  * Represents a parsed section of the patient communication document
  */
 export interface ParsedSection {
+  /** Stable section ID used across UI, print and publishing */
+  id?: SectionId;
   /** Section title (e.g., "What do I have") */
   title: string;
   /** Section content text */
@@ -64,7 +68,11 @@ export const parseDraftIntoSections = (draft: string): ParsedSection[] => {
     const content = lines.slice(1).join('\n').trim();
     
     if (title) {
-      sections.push({ title, content });
+      sections.push({
+        id: SECTION_IDS[sections.length],
+        title,
+        content
+      });
     }
   }
   

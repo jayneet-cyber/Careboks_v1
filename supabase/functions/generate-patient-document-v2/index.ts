@@ -112,7 +112,7 @@ serve(async (req) => {
     try {
       requireAuth(req);
       console.log("Authenticated request received");
-    } catch (authError) {
+    } catch (_authError) {
       return new Response(
         JSON.stringify({
           error: "Unauthorized",
@@ -174,9 +174,10 @@ CRITICAL OUTPUT RULES:
 - All 7 sections MUST be present
 - Each section must be at least 50 characters
 - Inside each section string, use readable markdown structure where helpful:
-  - Bullet lists for actions/steps/warning signs
+  - Use Bullet points where useful/appropriate, but keep formatting clean and consistent
   - **Bold** for key terms
   - Line breaks for readability
+  - Use either "- text" or "1. text" per line; never mix list markers on the same line (forbidden: "- 1. text")
 
 REQUIRED JSON STRUCTURE (copy this exactly):
 {
@@ -248,6 +249,7 @@ CRITICAL REQUIREMENTS FOR THIS RETRY:
 - Section 6 (Warning Signs) MUST include emergency number 112
 - Never use phrases like "I don't know" - use "Your doctor will provide this information"
 - Return ONLY valid JSON object with no explanations before/after it
+- Keep list marker formatting clean: use either "- text" or "1. text" per line; never output mixed markers like "- 1. text"
 
 ${basePrompt}`;
       }

@@ -56,6 +56,8 @@ export interface PatientProfileData {
   includeRelatives: boolean;
   /** List of comorbidities */
   comorbidities: string[];
+  /** Selected section IDs to include in review/publishing */
+  selectedSectionIds: string[];
 }
 
 /**
@@ -203,7 +205,8 @@ export const useCasePersistence = () => {
           risk_appetite: profileData.riskAppetite,
           has_accessibility_needs: profileData.hasAccessibilityNeeds,
           include_relatives: profileData.includeRelatives,
-          comorbidities: profileData.comorbidities
+          comorbidities: profileData.comorbidities,
+          selected_section_ids: profileData.selectedSectionIds
         })
         .select()
         .single();

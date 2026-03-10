@@ -33,6 +33,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { hasVerifiedTotpFactor, listTotpFactors } from "@/lib/mfa";
+import { useAppLanguage } from "@/lib/i18n";
 
 /**
  * Props for the SettingsSection component
@@ -55,6 +56,7 @@ interface SettingsSectionProps {
  */
 const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
   const { toast } = useToast();
+  const { t } = useAppLanguage();
 
   const [loadingSecurity, setLoadingSecurity] = useState(true);
   const [savingSecurity, setSavingSecurity] = useState(false);
@@ -81,7 +83,7 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
 
     if (profileError) {
       toast({
-        title: "Could not load security settings",
+        title: t("Could not load security settings"),
         description: profileError.message,
         variant: "destructive",
       });
@@ -92,7 +94,7 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
     const { factors, error: factorsError } = await listTotpFactors();
     if (factorsError) {
       toast({
-        title: "Could not load MFA status",
+        title: t("Could not load MFA status"),
         description: factorsError.message,
         variant: "destructive",
       });
@@ -112,7 +114,7 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
     }
 
     setLoadingSecurity(false);
-  }, [toast]);
+  }, [t, toast]);
 
   useEffect(() => {
     loadSecurityState();
@@ -121,8 +123,8 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
   const handleToggleEnforcement = async (checked: boolean) => {
     if (!hasConfiguredMfa) {
       toast({
-        title: "MFA setup required",
-        description: "Set up MFA before enabling per-login enforcement.",
+        title: t("MFA setup required"),
+        description: t("Set up MFA before enabling per-login enforcement."),
         variant: "destructive",
       });
       return;
@@ -145,7 +147,7 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
 
     if (error) {
       toast({
-        title: "Update failed",
+        title: t("Update failed"),
         description: error.message,
         variant: "destructive",
       });
@@ -155,8 +157,8 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
 
     setEnforceEveryLogin(checked);
     toast({
-      title: "Security settings updated",
-      description: checked ? "MFA will be required on every login." : "Regular login is enabled.",
+      title: t("Security settings updated"),
+      description: checked ? t("MFA will be required on every login.") : t("Regular login is enabled."),
     });
     setSavingSecurity(false);
   };
@@ -165,9 +167,9 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Account Settings</CardTitle>
+          <CardTitle>{t("Account Settings")}</CardTitle>
           <CardDescription>
-            Manage your account preferences and security
+            {t("Manage your account preferences and security")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -180,14 +182,14 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
                     <Shield className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">Security</p>
+                    <p className="font-medium">{t("Security")}</p>
                     <p className="text-sm text-muted-foreground">
-                      Manage multi-factor authentication for your account
+                      {t("Manage multi-factor authentication for your account")}
                     </p>
                   </div>
                 </div>
                 <Badge variant={hasConfiguredMfa ? "default" : "secondary"}>
-                  {hasConfiguredMfa ? "MFA configured" : "Setup required"}
+                  {hasConfiguredMfa ? t("MFA configured") : t("Setup required")}
                 </Badge>
               </div>
 
@@ -196,9 +198,9 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
                   <Shield className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-medium">Require MFA for every login</p>
+                  <p className="font-medium">{t("Require MFA for every login")}</p>
                   <p className="text-sm text-muted-foreground">
-                    If disabled, MFA remains configured but is not required each login.
+                    {t("If disabled, MFA remains configured but is not required each login.")}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -209,13 +211,13 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
                     id="mfa-enforce-checkbox"
                   />
                   <Label htmlFor="mfa-enforce-checkbox" className="text-sm">
-                    Enforce
+                    {t("Enforce")}
                   </Label>
                 </div>
               </div>
 
               {loadingSecurity && (
-                <p className="text-sm text-muted-foreground">Loading security settings...</p>
+                <p className="text-sm text-muted-foreground">{t("Loading security settings...")}</p>
               )}
             </div>
 
@@ -228,14 +230,14 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
                   <Bell className="h-5 w-5 text-accent" />
                 </div>
                 <div>
-                  <p className="font-medium">Notifications</p>
+                  <p className="font-medium">{t("Notifications")}</p>
                   <p className="text-sm text-muted-foreground">
-                    Email and push notification preferences
+                    {t("Email and push notification preferences")}
                   </p>
                 </div>
               </div>
               <Button variant="outline" disabled>
-                Coming Soon
+                {t("Coming Soon")}
               </Button>
             </div>
 
@@ -248,14 +250,14 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
                   <Palette className="h-5 w-5 text-secondary" />
                 </div>
                 <div>
-                  <p className="font-medium">Appearance</p>
+                  <p className="font-medium">{t("Appearance")}</p>
                   <p className="text-sm text-muted-foreground">
-                    Theme and display preferences
+                    {t("Theme and display preferences")}
                   </p>
                 </div>
               </div>
               <Button variant="outline" disabled>
-                Coming Soon
+                {t("Coming Soon")}
               </Button>
             </div>
           </div>
@@ -265,9 +267,9 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
       {/* Danger Zone - Sign Out */}
       <Card>
         <CardHeader>
-          <CardTitle>Danger Zone</CardTitle>
+          <CardTitle>{t("Danger Zone")}</CardTitle>
           <CardDescription>
-            Irreversible and destructive actions
+            {t("Irreversible and destructive actions")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -275,20 +277,20 @@ const SettingsSection = ({ onLogout }: SettingsSectionProps) => {
             <AlertDialogTrigger asChild>
               <Button variant="destructive" className="w-full">
                 <LogOut className="h-4 w-4" />
-                Sign Out
+                {t("Sign Out")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>{t("Are you sure?")}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  You will be signed out of your account and redirected to the login page.
+                  {t("You will be signed out of your account and redirected to the login page.")}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t("Cancel")}</AlertDialogCancel>
                 <AlertDialogAction onClick={onLogout}>
-                  Sign Out
+                  {t("Sign Out")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

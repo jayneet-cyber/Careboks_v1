@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,8 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const forceLogin = searchParams.get("forceLogin") === "1";
   const { toast } = useToast();
 
   /**
@@ -43,21 +46,28 @@ const Auth = () => {
    */
   useEffect(() => {
     // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate("/app");
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) {
+        return;
       }
+
+      if (forceLogin) {
+        await supabase.auth.signOut();
+        return;
+      }
+
+      navigate("/app");
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+      if (session && !forceLogin) {
         navigate("/app");
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [forceLogin, navigate]);
 
   /**
    * Handles new user registration
@@ -113,6 +123,8 @@ const Auth = () => {
         title: "Welcome back",
         description: "Successfully signed in to Carebox",
       });
+
+      navigate("/app");
     } catch (error: any) {
       toast({
         title: "Error",

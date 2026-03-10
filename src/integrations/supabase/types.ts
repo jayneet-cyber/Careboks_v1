@@ -272,6 +272,7 @@ export type Database = {
           journey_type: string | null
           language: string | null
           risk_appetite: string | null
+          selected_section_ids: string[] | null
           sex: string | null
         }
         Insert: {
@@ -286,6 +287,7 @@ export type Database = {
           journey_type?: string | null
           language?: string | null
           risk_appetite?: string | null
+          selected_section_ids?: string[] | null
           sex?: string | null
         }
         Update: {
@@ -300,6 +302,7 @@ export type Database = {
           journey_type?: string | null
           language?: string | null
           risk_appetite?: string | null
+          selected_section_ids?: string[] | null
           sex?: string | null
         }
         Relationships: [
@@ -363,6 +366,7 @@ export type Database = {
           is_active: boolean
           patient_language: string
           published_at: string
+          selected_section_ids: string[] | null
           sections_data: Json
           view_count: number
         }
@@ -377,6 +381,7 @@ export type Database = {
           is_active?: boolean
           patient_language?: string
           published_at?: string
+          selected_section_ids?: string[] | null
           sections_data: Json
           view_count?: number
         }
@@ -391,6 +396,7 @@ export type Database = {
           is_active?: boolean
           patient_language?: string
           published_at?: string
+          selected_section_ids?: string[] | null
           sections_data?: Json
           view_count?: number
         }
@@ -463,6 +469,7 @@ export type Database = {
           id: string
           patient_language: string
           published_at: string
+          selected_section_ids: string[]
           sections_data: Json
         }[]
       }

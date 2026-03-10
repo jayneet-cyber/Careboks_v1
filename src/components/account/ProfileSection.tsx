@@ -7,11 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Languages } from "lucide-react";
+import { useAppLanguage } from "@/lib/i18n";
+import { UiLanguage, normalizeUiLanguage } from "@/lib/language";
 
 const ProfileSection = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { setLanguage, t } = useAppLanguage();
   
   const [profile, setProfile] = useState({
     first_name: "",
@@ -65,14 +68,14 @@ const ProfileSection = () => {
           last_name: data.last_name || "",
           email: data.email || user.email || "",
           role: data.role || "",
-          language: data.language || "est"
+          language: normalizeUiLanguage(data.language || "est")
         });
       }
     } catch (error: any) {
       console.error('Error loading profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to load profile",
+        title: t("Error"),
+        description: t("Failed to load profile"),
         variant: "destructive"
       });
     } finally {
@@ -98,15 +101,17 @@ const ProfileSection = () => {
 
       if (error) throw error;
 
+      setLanguage(normalizeUiLanguage(profile.language));
+
       toast({
-        title: "Success",
-        description: "Profile updated successfully"
+        title: t("Success"),
+        description: t("Profile updated successfully")
       });
     } catch (error: any) {
       console.error('Error saving profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to save profile",
+        title: t("Error"),
+        description: t("Failed to save profile"),
         variant: "destructive"
       });
     } finally {
@@ -127,36 +132,36 @@ const ProfileSection = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profile Information</CardTitle>
+        <CardTitle>{t("Profile Information")}</CardTitle>
         <CardDescription>
-          Update your personal information
+          {t("Update your personal information")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="first_name">First Name</Label>
+            <Label htmlFor="first_name">{t("First Name")}</Label>
             <Input
               id="first_name"
               value={profile.first_name}
               onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
-              placeholder="Enter your first name"
+              placeholder={t("Enter your first name")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="last_name">Last Name</Label>
+            <Label htmlFor="last_name">{t("Last Name")}</Label>
             <Input
               id="last_name"
               value={profile.last_name}
               onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
-              placeholder="Enter your last name"
+              placeholder={t("Enter your last name")}
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t("Email")}</Label>
           <Input
             id="email"
             type="email"
@@ -165,46 +170,46 @@ const ProfileSection = () => {
             className="bg-muted"
           />
           <p className="text-xs text-muted-foreground">
-            Email cannot be changed
+            {t("Email cannot be changed")}
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="role">Role</Label>
+          <Label htmlFor="role">{t("Role")}</Label>
           <Select value={profile.role} onValueChange={(value) => setProfile({ ...profile, role: value })}>
             <SelectTrigger>
-              <SelectValue placeholder="Select your role" />
+              <SelectValue placeholder={t("Select your role")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="doctor">Doctor</SelectItem>
-              <SelectItem value="nurse">Nurse</SelectItem>
+              <SelectItem value="doctor">{t("Doctor")}</SelectItem>
+              <SelectItem value="nurse">{t("Nurse")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="language">Preferred Language</Label>
-          <Select value={profile.language} onValueChange={(value) => setProfile({ ...profile, language: value })}>
+          <Label htmlFor="language">{t("Preferred Language")}</Label>
+          <Select value={profile.language} onValueChange={(value) => setProfile({ ...profile, language: normalizeUiLanguage(value) as UiLanguage })}>
             <SelectTrigger>
-              <SelectValue placeholder="Select your language" />
+              <SelectValue placeholder={t("Select your language")} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="est">
                 <div className="flex items-center gap-2">
                   <Languages className="h-4 w-4" />
-                  <span>Estonian (EST)</span>
+                  <span>{t("Estonian (EST)")}</span>
                 </div>
               </SelectItem>
               <SelectItem value="rus">
                 <div className="flex items-center gap-2">
                   <Languages className="h-4 w-4" />
-                  <span>Russian (RUS)</span>
+                  <span>{t("Russian (RUS)")}</span>
                 </div>
               </SelectItem>
               <SelectItem value="eng">
                 <div className="flex items-center gap-2">
                   <Languages className="h-4 w-4" />
-                  <span>English (ENG)</span>
+                  <span>{t("English (ENG)")}</span>
                 </div>
               </SelectItem>
             </SelectContent>
@@ -216,12 +221,12 @@ const ProfileSection = () => {
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
+                {t("Saving...")}
               </>
             ) : (
               <>
                 <Save className="h-4 w-4" />
-                Save Changes
+                {t("Save Changes")}
               </>
             )}
           </Button>

@@ -5,6 +5,8 @@
  * patient documents directly without separate analysis step.
  */
 
+import { SECTION_GUIDELINE_DEFINITIONS } from "../_shared/sectionGuidelines.ts";
+
 export interface PatientProfile {
   age: number;
   sex: "male" | "female" | "other";
@@ -42,7 +44,8 @@ FORMATTING REQUIREMENTS:
 - Use bullet points where it is appropriate for readability
 - Use bold text for section headers and key terms
 - Break information into short paragraphs or lines for easier reading
-- Avoid long paragraphs - prioritize bullet lists for readability`;
+- Avoid long paragraphs - prioritize bullet lists for readability
+- List marker consistency: use either bullet format ("- text") or numbered format ("1. text") per line, never mixed markers on the same line (forbidden: "- 1. text")`;
 
 export const getPersonalizationInstructions = (profile: PatientProfile): string => {
   let instructions = `\nPERSONALIZATION REQUIREMENTS:\n`;
@@ -184,57 +187,42 @@ export const getSectionGuidelines = (language: string): string => {
 
   const titles = sectionTitles[language as keyof typeof sectionTitles] || sectionTitles.english;
 
+  const localizedTitles = [
+    titles.section1,
+    titles.section2,
+    titles.section3,
+    titles.section4,
+    titles.section5,
+    titles.section6,
+    titles.section7,
+  ];
+
+  const englishDescriptors = [
+    "What do I have",
+    "How should I live next",
+    "How the next 6 months will look",
+    "What it means for my life",
+    "My medications",
+    "Warning signs",
+    "My contacts",
+  ];
+
+  const sectionBlocks = SECTION_GUIDELINE_DEFINITIONS
+    .map((definition) => {
+      const sectionNumber = definition.index + 1;
+      const sectionHeader = `${sectionNumber}. ${localizedTitles[definition.index]} (${englishDescriptors[definition.index]}):`;
+      const bulletLines = definition.fullGuidelineLines
+        .map((line) => `   - ${line}`)
+        .join("\n");
+
+      return `${sectionHeader}\n${bulletLines}`;
+    })
+    .join("\n\n");
+
   return `
 SECTION GUIDELINES:
 
-1. ${titles.section1} (What do I have):
-   - State the diagnosis in plain language
-   - Provide a simple explanation of what it means
-   - Include relevant test results in understandable terms
-   - Avoid overwhelming with too many medical details
-
-2. ${titles.section2} (How should I live next): 
-   - Practical, actionable daily instructions
-   - Diet, fluid intake, physical activity
-   - Daily monitoring tasks (weight, symptoms)
-   - What to do and what to avoid
-   - Be specific with measurements (liters, grams, minutes)
-
-3. ${titles.section3} (How the next 6 months will look):
-   - Timeline broken into phases (first 2 weeks, 1-3 months, 3-6 months)
-   - What physical changes to expect
-   - Improvements and adjustments
-   - Follow-up schedule
-
-4. ${titles.section4} (What it means for my life):
-   - Long-term lifestyle impact
-   - What patient CAN do (work, travel, hobbies)
-   - What patient MUST do (medications, check-ups)
-   - Realistic but hopeful perspective
-
-5. ${titles.section5} (My medications):
-   - List each medication with:
-     * Name and dosage
-     * When to take it
-     * What it does (in simple terms)
-     * What happens if not taken
-   - Emphasize: Never stop without consulting doctor
-   - If information is incomplete, note: "Ask your doctor or nurse for more details"
-
-6. ${titles.section6} (Warning signs):
-   - Clear list of symptoms requiring immediate action
-   - When to call emergency (112)
-   - When to contact doctor's office
-   - Be specific and concrete
-   - ALWAYS include this section even if clinical note lacks details
-
-7. ${titles.section7} (My contacts):
-   - Cardiologist/primary physician with phone and email
-   - Nurse hotline or support line
-   - Pharmacy contact
-   - Emergency number (112) with specific situations requiring immediate help
-   - Next appointment date if known
-   - If specific contacts are missing, include: "Your care team will provide contact information"`;
+${sectionBlocks}`;
 };
 
 export const getLanguageSpecificGuidelines = (language: string): string => {

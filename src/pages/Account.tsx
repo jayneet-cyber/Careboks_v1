@@ -17,6 +17,7 @@ import DocumentsSection from "@/components/account/DocumentsSection";
 import ContactsSection from "@/components/account/ContactsSection";
 import SettingsSection from "@/components/account/SettingsSection";
 import MedicalHeader from "@/components/MedicalHeader";
+import { useAppLanguage } from "@/lib/i18n";
 
 /**
  * Props for the Account component
@@ -38,31 +39,33 @@ interface AccountProps {
  * ```
  */
 const Account = ({ onLogout }: AccountProps) => {
+  const { t } = useAppLanguage();
+
   return (
     <div className="min-h-screen bg-background">
       <MedicalHeader currentStep={0} totalSteps={0} onLogout={onLogout} />
       
       <main className="container mx-auto px-6 py-8">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">My Account</h1>
+          <h1 className="text-3xl font-bold mb-8">{t("My Account")}</h1>
           
           <Tabs defaultValue="profile" className="space-y-6">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Profile</span>
+                <span className="hidden sm:inline">{t("Profile")}</span>
               </TabsTrigger>
               <TabsTrigger value="documents" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Documents</span>
+                <span className="hidden sm:inline">{t("Documents")}</span>
               </TabsTrigger>
               <TabsTrigger value="contacts" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Contacts</span>
+                <span className="hidden sm:inline">{t("Contacts")}</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Settings</span>
+                <span className="hidden sm:inline">{t("Settings")}</span>
               </TabsTrigger>
             </TabsList>
 

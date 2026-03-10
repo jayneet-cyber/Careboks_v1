@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Loader2, Trash2, Download } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useAppLanguage } from "@/lib/i18n";
 
 /** Allowed file types for upload */
 const ALLOWED_FILE_TYPES = ['application/pdf', 'text/plain'];
@@ -49,6 +50,7 @@ const DocumentsSection = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const { t } = useAppLanguage();
 
   useEffect(() => {
     loadDocuments();
@@ -73,8 +75,8 @@ const DocumentsSection = () => {
     } catch (error: any) {
       console.error('Error loading documents:', error);
       toast({
-        title: "Error",
-        description: "Failed to load documents",
+        title: t("Error"),
+        description: t("Failed to load documents"),
         variant: "destructive"
       });
     } finally {
@@ -94,8 +96,8 @@ const DocumentsSection = () => {
     
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
       toast({
-        title: "Invalid file type",
-        description: "Only PDF and TXT files are allowed",
+        title: t("Invalid file type"),
+        description: t("Only PDF and TXT files are allowed"),
         variant: "destructive"
       });
       return;
@@ -127,16 +129,16 @@ const DocumentsSection = () => {
       if (dbError) throw dbError;
 
       toast({
-        title: "Success",
-        description: "Document uploaded successfully"
+        title: t("Success"),
+        description: t("Document uploaded successfully")
       });
 
       loadDocuments();
     } catch (error: any) {
       console.error('Error uploading file:', error);
       toast({
-        title: "Error",
-        description: "Failed to upload document",
+        title: t("Error"),
+        description: t("Failed to upload document"),
         variant: "destructive"
       });
     } finally {
@@ -165,16 +167,16 @@ const DocumentsSection = () => {
       if (dbError) throw dbError;
 
       toast({
-        title: "Success",
-        description: "Document deleted successfully"
+        title: t("Success"),
+        description: t("Document deleted successfully")
       });
 
       loadDocuments();
     } catch (error: any) {
       console.error('Error deleting document:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete document",
+        title: t("Error"),
+        description: t("Failed to delete document"),
         variant: "destructive"
       });
     }
@@ -203,8 +205,8 @@ const DocumentsSection = () => {
     } catch (error: any) {
       console.error('Error downloading file:', error);
       toast({
-        title: "Error",
-        description: "Failed to download document",
+        title: t("Error"),
+        description: t("Failed to download document"),
         variant: "destructive"
       });
     }
@@ -224,9 +226,9 @@ const DocumentsSection = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My Documents</CardTitle>
+        <CardTitle>{t("My Documents")}</CardTitle>
         <CardDescription>
-          Upload and manage your PDF and TXT documents
+          {t("Upload and manage your PDF and TXT documents")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -240,12 +242,12 @@ const DocumentsSection = () => {
             {uploading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Uploading...
+                {t("Uploading...")}
               </>
             ) : (
               <>
                 <Upload className="h-4 w-4" />
-                Upload Document
+                {t("Upload Document")}
               </>
             )}
           </Button>
@@ -257,7 +259,7 @@ const DocumentsSection = () => {
             className="hidden"
           />
           <p className="text-xs text-muted-foreground">
-            Supported formats: PDF, TXT
+            {t("Supported formats: PDF, TXT")}
           </p>
         </div>
 
@@ -268,7 +270,7 @@ const DocumentsSection = () => {
         ) : documents.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No documents uploaded yet</p>
+            <p>{t("No documents uploaded yet")}</p>
           </div>
         ) : (
           <div className="space-y-2">
