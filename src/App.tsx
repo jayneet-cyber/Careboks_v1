@@ -30,8 +30,12 @@ const App = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [mfaRequirement, setMfaRequirement] = useState<"unknown" | "required" | "not-required">("unknown");
   const mfaEvaluationRef = useRef(0);
+  const lastSessionUserIdRef = useRef<string | null>(null);
 
-  const evaluateMfaRequirement = async (currentSession: Session | null) => {
+  const evaluateMfaRequirement = async (
+    currentSession: Session | null,
+    options?: { preserveUiState?: boolean }
+  ) => {
     const evaluationId = ++mfaEvaluationRef.current;
     const isLatestEvaluation = () => mfaEvaluationRef.current === evaluationId;
 
@@ -42,7 +46,7 @@ const App = () => {
       return;
     }
 
-    if (isLatestEvaluation()) {
+    if (!options?.preserveUiState && isLatestEvaluation()) {
       setMfaRequirement("unknown");
     }
 
@@ -111,6 +115,7 @@ const App = () => {
     const initSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        lastSessionUserIdRef.current = session?.user?.id ?? null;
         setSession(session);
         if (session?.user?.id) {
           loadUiLanguageFromProfile(session.user.id);
@@ -128,14 +133,26 @@ const App = () => {
 
     initSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const previousUserId = lastSessionUserIdRef.current;
+      const nextUserId = session?.user?.id ?? null;
+      const sameUser = Boolean(previousUserId && nextUserId && previousUserId === nextUserId);
+
+      lastSessionUserIdRef.current = nextUserId;
       setSession(session);
       if (session?.user?.id) {
         loadUiLanguageFromProfile(session.user.id);
       } else {
         setLanguage("eng");
       }
-      evaluateMfaRequirement(session).catch((error) => {
+
+      const preserveUiState = sameUser && (
+        event === "TOKEN_REFRESHED" ||
+        event === "SIGNED_IN" ||
+        event === "USER_UPDATED"
+      );
+
+      evaluateMfaRequirement(session, { preserveUiState }).catch((error) => {
         console.error("Auth state MFA evaluation failed:", error);
         setMfaRequirement("required");
       });

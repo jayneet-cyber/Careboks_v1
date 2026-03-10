@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import MedicalHeader from "@/components/MedicalHeader";
 import { ParsedSection } from "@/utils/draftParser";
 import { useCasePersistence } from "@/hooks/useCasePersistence";
@@ -41,7 +41,13 @@ interface IndexProps {
 
 const Index = ({ onLogout }: IndexProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { loadCase } = useCasePersistence();
+
+  const clearTransientRouteState = () => {
+    // Replace current history entry so location.state is actually cleared in React Router.
+    navigate(location.pathname, { replace: true, state: null });
+  };
   
   const [currentStep, setCurrentStep] = useState<Step>('input');
   const [currentCaseId, setCurrentCaseId] = useState<string | null>(null);
@@ -61,7 +67,13 @@ const Index = ({ onLogout }: IndexProps) => {
   // Handle returning from print preview or navigating to specific step
   useEffect(() => {
     const state = location.state as LocationState | null;
-    if (state?.returnToCaseId && state.returnToCaseId !== currentCaseId) {
+    const hasCaseToRestore = Boolean(state?.returnToCaseId);
+    const shouldRestoreCase = Boolean(
+      state?.returnToCaseId && (state.returnToCaseId !== currentCaseId || state.navigateToStep)
+    );
+
+    if (hasCaseToRestore && shouldRestoreCase && state?.returnToCaseId) {
+      let isCancelled = false;
       
       // CRITICAL: If sections are passed in state, restore them immediately
       // This preserves all edits when navigating back from PrintPreview/Feedback
@@ -72,6 +84,10 @@ const Index = ({ onLogout }: IndexProps) => {
       
       // Load the case and restore other state
       loadCase(state.returnToCaseId).then(({ data, error }) => {
+        if (isCancelled) {
+          return;
+        }
+
         if (data && !error) {
           setCurrentCaseId(data.id);
           setTechnicalNote(data.technical_note || "");
@@ -103,12 +119,17 @@ const Index = ({ onLogout }: IndexProps) => {
           const targetStep = state.navigateToStep || 'approval';
           setCurrentStep(targetStep);
         }
+
+        // Clear transient route state only after restore attempt finishes,
+        // so the in-flight restore is not cancelled by a replace navigation.
+        clearTransientRouteState();
       });
-      
-      // Clear the state to prevent re-triggering
-      window.history.replaceState({}, document.title);
+
+      return () => {
+        isCancelled = true;
+      };
     }
-  }, [location.state]);
+  }, [location.state, currentCaseId, loadCase, navigate, location.pathname]);
 
   const handleTechnicalNoteSubmit = (note: string, caseId: string) => {
     setTechnicalNote(note);
@@ -141,6 +162,7 @@ const Index = ({ onLogout }: IndexProps) => {
   };
 
   const handleRestart = () => {
+    clearTransientRouteState();
     setCurrentStep('input');
     setCurrentCaseId(null);
     setTechnicalNote("");
